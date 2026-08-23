@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.kilo/
+.kiro/
+.vscode/
+*.log
+.pnpm/
+.env
+.env.local
+.env.*.local
+src/supabase.ts
+supabase/
