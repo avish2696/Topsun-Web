@@ -179,3 +179,141 @@
     line-height: 1.5;
   }
 }
+
+/* ==========================================================================
+   MAURYA COLLECTION LUXURY TOKENS & UTILITIES (Topsun Redesign)
+   ========================================================================== */
+.font-luxury-serif {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+}
+
+.font-luxury-sans {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.bg-luxury-sand {
+  background-color: #faf7f2;
+}
+
+.bg-luxury-cream {
+  background-color: #f5ede0;
+}
+
+.bg-luxury-charcoal {
+  background-color: #121518;
+}
+
+.text-luxury-charcoal {
+  color: #121518;
+}
+
+.text-luxury-gold {
+  color: #b38b3f;
+}
+
+.text-luxury-muted {
+  color: #606870;
+}
+
+.border-luxury-sand {
+  border-color: #e4ded5;
+}
+
+.border-luxury-gold {
+  border-color: #dfc38a;
+}
+
+.luxury-card {
+  background: #ffffff;
+  border: 1px solid #e4ded5;
+  border-radius: 1rem;
+  box-shadow: 0 2px 12px rgba(18, 21, 24, 0.04);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.luxury-card:hover {
+  border-color: #dfc38a;
+  box-shadow: 0 10px 28px rgba(18, 21, 24, 0.08);
+}
+
+.luxury-btn-primary {
+  background-color: #121518;
+  color: #ffffff;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  transition: all 0.2s ease;
+}
+
+.luxury-btn-primary:hover {
+  background-color: #000000;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+}
+
+.luxury-btn-gold {
+  background-color: #b38b3f;
+  color: #ffffff;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  transition: all 0.2s ease;
+}
+
+.luxury-btn-gold:hover {
+  background-color: #9a7535;
+  box-shadow: 0 6px 20px rgba(179, 139, 63, 0.28);
+}
+
+.luxury-pill-gold {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  background-color: rgba(179, 139, 63, 0.1);
+  border: 1px solid rgba(179, 139, 63, 0.25);
+  color: #8c6820;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* ── Mobile scrollbar utility ── */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Bottom nav safe area for modern phones ── */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ── Mobile viewport overflow & full-width screen fit ── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  width: 100%;
+  min-height: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+

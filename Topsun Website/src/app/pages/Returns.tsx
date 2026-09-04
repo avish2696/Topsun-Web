@@ -1,39 +1,48 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '@/app/components/Header';
-import { motion } from 'motion/react';
-import { CheckCircle, Clock, Package, MessageCircle, ShieldCheck, ArrowRight } from 'lucide-react';
-import { useNavigate, Link } from 'react-router-dom';
+import { RefreshCw, Package, Clock, CheckCircle2, AlertCircle, MessageCircle, Sparkles } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useShopping } from '@/app/context/ShoppingContext';
+import { SEOHead } from '@/app/components/SEOHead';
+import { Breadcrumbs } from '@/app/components/Breadcrumbs';
 
 export default function Returns() {
-  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { getCartItemCount } = useShopping();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
+  useEffect(() => { window.scrollTo(0, 0); }, []);
 
   const steps = [
     {
-      num: '1',
-      title: 'Initiate on WhatsApp or Email',
-      desc: 'Send your Order ID and photo to our WhatsApp line (+91 7485006659) or topsunshoes7@gmail.com.',
+      number: '01',
+      title: 'Message Us on WhatsApp',
+      description: 'Send your Order ID and the replacement size needed. Our team confirms eligibility in under 2 hours.',
     },
     {
-      num: '2',
+      number: '02',
       title: 'Free Reverse Pickup',
-      desc: 'Our courier partner will arrange a doorstep pickup from your registered address.',
+      description: 'Our courier partner collects the package from your doorstep at zero cost. No branch drop-off needed.',
     },
     {
-      num: '3',
-      title: 'Instant Replacement or Refund',
-      desc: 'Once inspected, the new size is dispatched or full refund credited within 3-5 business days.',
+      number: '03',
+      title: 'Quality Check & Packing',
+      description: 'Upon arrival at our warehouse, our quality team inspects the unworn shoes and shoe box.',
+    },
+    {
+      number: '04',
+      title: 'Replacement Dispatched',
+      description: 'Your replacement pair is packed and dispatched within 24 hours with live courier tracking.',
     },
   ];
 
   return (
-    <div className="min-h-screen bg-[#fafafa]" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="min-h-screen bg-[#faf7f2] text-[#121518]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+      <SEOHead
+        title="7-Day Hassle-Free Exchange Policy | TOPSUN Footwear"
+        description="TOPSUN offers a 7-day hassle-free shoe size exchange policy with free doorstep reverse courier pickup across all Indian PIN codes."
+        breadcrumbs={[{ name: 'Home', url: '/' }, { name: 'Returns & Exchanges', url: '/returns' }]}
+      />
       <Header
         cartCount={getCartItemCount()}
         onCartClick={() => navigate('/cart')}
@@ -41,132 +50,130 @@ export default function Returns() {
         mobileMenuOpen={mobileMenuOpen}
       />
 
-      {/* Floating WhatsApp Support Button */}
-      <a
-        href="https://wa.me/917485006659?text=Hi%20TOPSUN%20Team!%20I%20want%20to%20exchange/return%20my%20shoes."
-        target="_blank"
-        rel="noopener noreferrer"
-        className="fixed bottom-6 left-4 z-40 w-12 h-12 rounded-full bg-[#25D366] text-white flex items-center justify-center shadow-lg shadow-green-500/30 hover:scale-105 active:scale-95 transition-transform"
-        aria-label="WhatsApp"
-        title="WhatsApp Support"
-      >
-        <MessageCircle size={26} className="fill-current" />
-      </a>
+      <main className="pt-24 sm:pt-28 pb-24 max-w-[1000px] mx-auto px-4 sm:px-6 space-y-10">
+        <Breadcrumbs items={[{ label: 'Returns & Exchanges' }]} />
 
-      <main className="pt-24 sm:pt-28 pb-20 max-w-[1000px] mx-auto px-4 sm:px-6 space-y-8">
-        {/* Header Banner */}
-        <section className="bg-white rounded-3xl p-6 sm:p-10 border border-gray-200/70 shadow-xs text-center">
-          <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-blue-50 text-[#009FE3] font-extrabold text-[11px] uppercase tracking-widest mb-3">
-            Hassle-Free Guarantee
+        {/* Hero */}
+        <div className="text-center space-y-3 pt-2">
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[rgba(179,139,63,0.12)] border border-[rgba(179,139,63,0.25)] text-[#8c6820] text-[11px] font-bold tracking-wider uppercase">
+            <Sparkles size={12} className="text-[#b38b3f]" />
+            Zero Risk Guarantee
           </span>
-          <h1 className="text-3xl sm:text-4xl font-black text-gray-900 leading-tight">
-            7-Day Easy Returns & Exchanges
+          <h1
+            className="text-3xl sm:text-5xl font-semibold text-[#121518] leading-tight"
+            style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+          >
+            7-Day Exchange Promise
           </h1>
-          <p className="text-xs sm:text-sm text-gray-500 max-w-lg mx-auto mt-2 leading-relaxed">
-            Wrong size? Not what you expected? No worries! We make shoe exchanges super fast and stress-free.
+          <p className="text-xs sm:text-sm text-[#606870] max-w-lg mx-auto leading-relaxed">
+            If your TOPSUN footwear doesn't fit like a glove, we make the exchange process effortless with free reverse courier pickup.
           </p>
-        </section>
+        </div>
 
-        {/* Feature Badges */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-white p-5 rounded-2xl border border-gray-200/70 shadow-xs flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#009FE3] flex items-center justify-center flex-shrink-0">
-              <Clock size={20} />
+        {/* 3 Pillars */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+          <div className="bg-white rounded-3xl border border-[#e4ded5] p-6 text-center space-y-2 shadow-xs">
+            <div className="w-12 h-12 rounded-2xl bg-[rgba(179,139,63,0.12)] text-[#b38b3f] flex items-center justify-center mx-auto">
+              <Clock size={22} />
             </div>
-            <div>
-              <h4 className="font-bold text-sm text-gray-900">7-Day Window</h4>
-              <p className="text-xs text-gray-500">From the date of delivery</p>
-            </div>
+            <h3 className="font-bold text-sm text-[#121518]">7-Day Window</h3>
+            <p className="text-xs text-[#606870] leading-relaxed">Initiate your exchange within 7 days of package delivery</p>
           </div>
-
-          <div className="bg-white p-5 rounded-2xl border border-gray-200/70 shadow-xs flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0">
-              <CheckCircle size={20} />
+          <div className="bg-white rounded-3xl border border-[#e4ded5] p-6 text-center space-y-2 shadow-xs">
+            <div className="w-12 h-12 rounded-2xl bg-[rgba(179,139,63,0.12)] text-[#b38b3f] flex items-center justify-center mx-auto">
+              <RefreshCw size={22} />
             </div>
-            <div>
-              <h4 className="font-bold text-sm text-gray-900">Free Reverse Pickup</h4>
-              <p className="text-xs text-gray-500">No extra return charges</p>
-            </div>
+            <h3 className="font-bold text-sm text-[#121518]">Free Reverse Pickup</h3>
+            <p className="text-xs text-[#606870] leading-relaxed">Our courier collects the parcel from your delivery address</p>
           </div>
-
-          <div className="bg-white p-5 rounded-2xl border border-gray-200/70 shadow-xs flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center flex-shrink-0">
-              <ShieldCheck size={20} />
+          <div className="bg-white rounded-3xl border border-[#e4ded5] p-6 text-center space-y-2 shadow-xs">
+            <div className="w-12 h-12 rounded-2xl bg-[rgba(179,139,63,0.12)] text-[#b38b3f] flex items-center justify-center mx-auto">
+              <Package size={22} />
             </div>
-            <div>
-              <h4 className="font-bold text-sm text-gray-900">100% Refund</h4>
-              <p className="text-xs text-gray-500">Direct to original payment method</p>
-            </div>
+            <h3 className="font-bold text-sm text-[#121518]">24-Hour Dispatch</h3>
+            <p className="text-xs text-[#606870] leading-relaxed">Replacement dispatched within 24 hours of return receipt</p>
           </div>
         </div>
 
-        {/* How It Works Steps */}
-        <section className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-200/70 shadow-xs space-y-6">
-          <h2 className="text-xl font-bold text-gray-900">Simple 3-Step Process</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {steps.map((s, idx) => (
-              <div key={idx} className="bg-gray-50/70 p-5 rounded-2xl border border-gray-200/60 space-y-2">
-                <div className="w-8 h-8 rounded-full bg-gray-900 text-white font-extrabold text-xs flex items-center justify-center">
-                  {s.num}
+        {/* Steps */}
+        <div className="bg-white rounded-3xl border border-[#e4ded5] p-8 sm:p-10 shadow-xs space-y-6">
+          <h2
+            className="text-2xl font-semibold text-[#121518]"
+            style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+          >
+            How the Exchange Works
+          </h2>
+          <div className="space-y-6">
+            {steps.map((step) => (
+              <div key={step.number} className="flex gap-5 items-start">
+                <div className="w-12 h-12 rounded-2xl bg-[#faf7f2] border border-[#e4ded5] flex items-center justify-center shrink-0">
+                  <span
+                    className="text-base font-bold text-[#b38b3f]"
+                    style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+                  >
+                    {step.number}
+                  </span>
                 </div>
-                <h3 className="font-bold text-sm text-gray-900">{s.title}</h3>
-                <p className="text-xs text-gray-600 leading-relaxed">{s.desc}</p>
+                <div className="space-y-0.5">
+                  <h3 className="text-sm font-bold text-[#121518]">{step.title}</h3>
+                  <p className="text-xs text-[#606870] leading-relaxed">{step.description}</p>
+                </div>
               </div>
             ))}
           </div>
-        </section>
+        </div>
 
-        {/* Eligibility Conditions */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="bg-emerald-50/70 border border-emerald-200 rounded-2xl p-5 space-y-2">
-            <h4 className="font-bold text-sm text-emerald-900 flex items-center gap-1.5">
-              <CheckCircle size={16} className="text-emerald-600" /> Eligible for Return
-            </h4>
-            <ul className="text-xs text-emerald-800 space-y-1.5 list-disc list-inside">
-              <li>Unworn condition with tags intact</li>
-              <li>Original shoe box and packaging</li>
-              <li>Within 7 days of delivery</li>
-            </ul>
-          </div>
-
-          <div className="bg-rose-50/70 border border-rose-200 rounded-2xl p-5 space-y-2">
-            <h4 className="font-bold text-sm text-rose-900 flex items-center gap-1.5">
-              <Clock size={16} className="text-rose-600" /> Not Eligible
-            </h4>
-            <ul className="text-xs text-rose-800 space-y-1.5 list-disc list-inside">
-              <li>Shoes with outdoor sole wear or dirt</li>
-              <li>Items without original tags or box</li>
-              <li>Requests initiated after 7 days</li>
-            </ul>
-          </div>
-        </section>
-
-        {/* Action Prompt */}
-        <div className="bg-white rounded-3xl p-8 border border-gray-200/70 text-center space-y-3 shadow-xs">
-          <h3 className="text-xl font-bold text-gray-900">Need to Exchange a Size Right Now?</h3>
-          <p className="text-xs text-gray-500 max-w-md mx-auto">
-            Our WhatsApp support representative will quickly verify your order and schedule a reverse courier pickup.
-          </p>
-          <a
-            href="https://wa.me/917485006659?text=Hi%20TOPSUN%20Team!%20I%20want%20to%20exchange%20my%20shoe%20size."
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#25D366] hover:bg-[#20ba5a] text-white font-bold text-xs shadow-md transition-colors mt-2"
+        {/* Conditions */}
+        <div className="bg-white rounded-3xl border border-[#e4ded5] p-8 sm:p-10 shadow-xs space-y-4">
+          <h2
+            className="text-2xl font-semibold text-[#121518]"
+            style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
           >
-            <MessageCircle size={16} className="fill-current" /> Chat on WhatsApp for Exchange
-          </a>
+            Eligibility Conditions
+          </h2>
+          <div className="space-y-2.5">
+            {[
+              { ok: true, text: 'Exchange request initiated within 7 calendar days of delivery' },
+              { ok: true, text: 'Shoes must be unworn with factory tags and clean outsoles' },
+              { ok: true, text: 'Original shoe box must be included in the return package' },
+              { ok: false, text: 'Worn, soiled, or damaged shoes cannot be accepted for exchange' },
+            ].map((c, i) => (
+              <div key={i} className="flex items-start gap-3 text-xs sm:text-sm text-[#606870]">
+                {c.ok ? (
+                  <CheckCircle2 size={16} className="text-emerald-700 shrink-0 mt-0.5" />
+                ) : (
+                  <AlertCircle size={16} className="text-rose-600 shrink-0 mt-0.5" />
+                )}
+                <span>{c.text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* CTA */}
+        <div className="bg-[#121518] text-white rounded-3xl p-8 sm:p-10 text-center space-y-4 shadow-xs">
+          <h2
+            className="text-2xl sm:text-3xl font-semibold"
+            style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+          >
+            Need to Start an Exchange?
+          </h2>
+          <p className="text-xs text-gray-300 max-w-md mx-auto">
+            Our support team processes exchange requests in under 2 hours via WhatsApp.
+          </p>
+          <div className="pt-2">
+            <a
+              href="https://wa.me/917485006659?text=Hi%20TOPSUN!%20I%20want%20to%20initiate%20an%20exchange%20request%20for%20my%20order."
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-7 py-3 bg-[#25D366] hover:bg-green-600 text-white text-xs font-bold rounded-xl transition-colors shadow-xs"
+            >
+              <MessageCircle size={15} />
+              <span>Start Exchange on WhatsApp</span>
+            </a>
+          </div>
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="bg-[#0c0c0c] text-white py-12 px-6 text-center text-xs text-gray-400 space-y-3">
-        <p>© 2026 TOPSUN Performance Sneakers. All rights reserved.</p>
-        <div className="flex justify-center gap-4 text-gray-500 font-semibold">
-          <Link to="/about" className="hover:text-white">About Us</Link>
-          <Link to="/shop" className="hover:text-white">Shop</Link>
-          <Link to="/contact" className="hover:text-white">Contact</Link>
-        </div>
-      </footer>
     </div>
   );
 }

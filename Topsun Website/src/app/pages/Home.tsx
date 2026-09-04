@@ -30,15 +30,16 @@ import { motion, AnimatePresence } from "motion/react";
 import { useShopping } from "@/app/context/ShoppingContext";
 import HeroShoe3D from "@/app/components/HeroShoe3D";
 import Header from "@/app/components/Header";
+import { SEOHead } from "@/app/components/SEOHead";
 
 // High-resolution product images
-import Shoe1 from "@/imports/storm-runner/1.png";
-import Shoe2 from "@/imports/urban-classic/1.png";
-import Shoe3 from "@/imports/trail-blaze/1.png";
-import Shoe4 from "@/imports/comfort-walk/1.png";
-import Shoe5 from "@/imports/street-edge/1.png";
-import Shoe6 from "@/imports/everyday-flex/1.png";
-import Shoe7 from "@/imports/sprint-pro/1.png";
+import Shoe1 from "@/imports/storm-runner/1.webp";
+import Shoe2 from "@/imports/urban-classic/1.webp";
+import Shoe3 from "@/imports/trail-blaze/1.webp";
+import Shoe4 from "@/imports/comfort-walk/1.webp";
+import Shoe5 from "@/imports/street-edge/1.webp";
+import Shoe6 from "@/imports/everyday-flex/1.webp";
+import Shoe7 from "@/imports/sprint-pro/1.webp";
 
 export interface ShoeProduct {
   id: number;
@@ -233,6 +234,12 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white text-zinc-900 selection:bg-[#009FE3] selection:text-white" style={{ fontFamily: "'Inter', sans-serif" }}>
+      <SEOHead
+        title="TOPSUN Footwear | Premium Sport & Performance Footwear"
+        description="Explore TOPSUN's high-performance sports and running shoes engineered for Indian athletes. Experience lightweight cushioning, durable traction, and 7-day hassle-free exchanges."
+        canonicalUrl="https://topsunfootwear.com/"
+        breadcrumbs={[{ name: 'Home', url: '/' }]}
+      />
 
       {/* ═══════════════════════════════════════════════════════════════════
           TOP URGENCY COUNTDOWN DEAL STRIP

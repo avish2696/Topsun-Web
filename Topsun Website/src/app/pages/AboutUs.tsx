@@ -1,57 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import Header from '@/app/components/Header';
-import { motion } from 'motion/react';
-import { Heart, Zap, Leaf, Target, Users, Award, Instagram, Facebook, MessageCircle, ArrowRight } from 'lucide-react';
-import { ResponsiveImage } from '@/app/components/ResponsiveImage';
-import { Link, useNavigate } from 'react-router-dom';
+import { Target, Users, ShieldCheck, Heart, Sparkles, ArrowRight, Award, Zap } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
 import { useShopping } from '@/app/context/ShoppingContext';
-
-import Shoe1 from '@/imports/storm-runner/1.png';
-import Shoe3 from '@/imports/trail-blaze/1.png';
-import Shoe5 from '@/imports/street-edge/1.png';
+import { SEOHead } from '@/app/components/SEOHead';
+import { Breadcrumbs } from '@/app/components/Breadcrumbs';
 
 export default function AboutUs() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { getCartItemCount } = useShopping();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
+  useEffect(() => { window.scrollTo(0, 0); }, []);
 
-  const values = [
-    {
-      icon: Zap,
-      label: 'Performance First',
-      description: 'Built for athletes who demand excellence. Every shoe is tested, refined, and perfected.',
-    },
-    {
-      icon: Heart,
-      label: 'Real Craftsmanship',
-      description: 'Designed in-house, produced with precision. No shortcuts, no compromises on quality.',
-    },
-    {
-      icon: Target,
-      label: 'Accessible Excellence',
-      description: 'Premium performance at fair prices. Great shoes shouldn\'t cost a fortune.',
-    },
-    {
-      icon: Leaf,
-      label: 'Responsibility',
-      description: 'Sourcing sustainable materials and ethical manufacturing practices wherever possible.',
-    },
-  ];
-
-  const milestones = [
-    { number: '2020', label: 'Founded', description: 'TOPSUN launched with our first collection' },
-    { number: '50K+', label: 'Happy Runners', description: 'Athletes and everyday customers worldwide' },
-    { number: '7', label: 'Pro Collections', description: 'Engineered for street, running, and all-day comfort' },
-    { number: '100%', label: 'Made with Pride', description: 'Quality inspection on every single pair' },
+  const stats = [
+    { label: 'Pairs Delivered in India', value: '50,000+' },
+    { label: 'Customer Satisfaction', value: '4.8 ★' },
+    { label: 'Direct Savings', value: 'Up to 60%' },
+    { label: 'Hassle-Free Exchange Window', value: '7 Days' },
   ];
 
   return (
-    <div className="min-h-screen bg-[#fafafa]" style={{ fontFamily: "'Inter', sans-serif" }}>
-      {/* Header */}
+    <div className="min-h-screen bg-[#faf7f2] text-[#121518]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+      <SEOHead
+        title="About Us – The TOPSUN Story & Athletic Mission"
+        description="Learn how TOPSUN Footwear is engineering pro-tier athletic shoes with responsive EVA foam and breathable mesh for Indian runners at accessible direct-to-consumer prices."
+        breadcrumbs={[{ name: 'Home', url: '/' }, { name: 'About Us', url: '/about' }]}
+      />
       <Header
         cartCount={getCartItemCount()}
         onCartClick={() => navigate('/cart')}
@@ -59,131 +34,115 @@ export default function AboutUs() {
         mobileMenuOpen={mobileMenuOpen}
       />
 
-      {/* Floating WhatsApp Support Button */}
-      <a
-        href="https://wa.me/917485006659?text=Hi%20TOPSUN%20Team!%20I%20have%20a%20question%20about%20your%20story%20and%20products."
-        target="_blank"
-        rel="noopener noreferrer"
-        className="fixed bottom-6 left-4 z-40 w-12 h-12 rounded-full bg-[#25D366] text-white flex items-center justify-center shadow-lg shadow-green-500/30 hover:scale-105 active:scale-95 transition-transform"
-        aria-label="WhatsApp"
-        title="WhatsApp Support"
-      >
-        <MessageCircle size={26} className="fill-current" />
-      </a>
+      <main className="pt-24 sm:pt-28 pb-24 max-w-[1040px] mx-auto px-4 sm:px-6 space-y-12">
+        <Breadcrumbs items={[{ label: 'About TOPSUN' }]} />
 
-      <main className="pt-24 sm:pt-28 pb-20 max-w-[1200px] mx-auto px-4 sm:px-6 space-y-12">
-        {/* Page Hero Card */}
-        <section className="bg-white rounded-3xl p-6 sm:p-12 border border-gray-200/70 shadow-xs text-center relative overflow-hidden">
-          <div className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-blue-50 text-[#009FE3] font-extrabold text-[11px] uppercase tracking-widest mb-4">
-            Our Story & Craft
-          </div>
-          <h1 className="text-3xl sm:text-5xl font-black text-gray-900 leading-tight mb-4" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-            Built for Runners. <br />
-            <span className="text-[#009FE3]">Designed for All-Day Comfort.</span>
+        {/* Hero */}
+        <div className="text-center max-w-2xl mx-auto space-y-4 pt-2">
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[rgba(179,139,63,0.12)] border border-[rgba(179,139,63,0.25)] text-[#8c6820] text-[11px] font-bold tracking-wider uppercase">
+            <Sparkles size={12} className="text-[#b38b3f]" />
+            Engineered in India
+          </span>
+          <h1
+            className="text-4xl sm:text-5xl font-semibold text-[#121518] leading-tight"
+            style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+          >
+            Born on the Track. <br />
+            <span className="text-[#b38b3f]">Built for the Stride.</span>
           </h1>
-          <p className="text-sm sm:text-base text-gray-600 max-w-2xl mx-auto leading-relaxed">
-            We started TOPSUN with a simple mission: building the fastest, most durable, and most comfortable performance footwear without the unfair luxury markups.
+          <p className="text-xs sm:text-sm text-[#606870] leading-relaxed max-w-xl mx-auto">
+            TOPSUN was founded with a singular conviction: Indian athletes, runners, and everyday explorers deserve elite performance cushioning without paying exorbitant international markups.
           </p>
-        </section>
+        </div>
 
-        {/* Story Grid with Shoe Preview */}
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-200/70 shadow-xs space-y-4">
-            <span className="text-xs font-bold text-[#009FE3] uppercase tracking-wider">How It Started</span>
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Footwear That Actually Performs</h2>
-            <div className="text-xs sm:text-sm text-gray-600 space-y-3 leading-relaxed">
-              <p>
-                Our founders spent years testing footwear and watching traditional brands compromise on foam density and upper breathability.
-              </p>
-              <p>
-                In 2020, we launched TOPSUN with engineered mesh, multi-density EVA midsoles, and responsive cushioning that holds up mile after mile.
-              </p>
-              <p>
-                Today, with over 50,000+ happy runners and thousands of 5-star reviews, we continue to innovate with direct-to-consumer pricing.
-              </p>
+        {/* Stats Strip */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {stats.map((s, i) => (
+            <div key={i} className="bg-white p-6 rounded-2xl border border-[#e4ded5] text-center shadow-xs space-y-1">
+              <span
+                className="text-2xl sm:text-3xl font-bold text-[#121518]"
+                style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+              >
+                {s.value}
+              </span>
+              <p className="text-[11px] font-bold text-[#606870] uppercase tracking-wider">{s.label}</p>
             </div>
-            <Link
-              to="/shop"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gray-900 hover:bg-black text-white text-xs font-bold transition-all shadow-md mt-2"
+          ))}
+        </div>
+
+        {/* Brand Mission & Story */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+          <div className="bg-white rounded-3xl p-8 sm:p-10 border border-[#e4ded5] shadow-xs space-y-4">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#b38b3f]">Our Heritage</span>
+            <h2
+              className="text-2xl sm:text-3xl font-semibold text-[#121518]"
+              style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
             >
-              Explore Our Shoes <ArrowRight size={14} />
-            </Link>
+              Direct from Factory to Athlete
+            </h2>
+            <p className="text-xs sm:text-sm text-[#606870] leading-relaxed">
+              Operating under <strong>INTELAGROW PVT. LTD.</strong> (Raniganj, West Bengal), TOPSUN eliminates retail middlemen and distributor markups. Every rupee saved is reinvested directly into high-density EVA midsole foam, honeycomb traction outsoles, and breathable engineered mesh.
+            </p>
+            <p className="text-xs sm:text-sm text-[#606870] leading-relaxed">
+              Whether you are running your first 5K, logging daily walking miles, or conquering city pavement, TOPSUN shoes deliver comfort that lasts morning to night.
+            </p>
           </div>
 
-          <div className="bg-[#f4f4f2] rounded-3xl p-8 border border-gray-200/70 flex items-center justify-center aspect-square shadow-xs">
-            <ResponsiveImage
-              src={Shoe3}
-              alt="TOPSUN Sunspark"
-              className="w-full h-full object-contain mix-blend-multiply hover:scale-105 transition-transform duration-300"
-            />
-          </div>
-        </section>
-
-        {/* Values Cards */}
-        <section className="space-y-6">
-          <div className="text-center">
-            <span className="text-xs font-bold text-[#009FE3] uppercase tracking-wider">Core Pillars</span>
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1">Our Core Values</h2>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {values.map((val, idx) => {
-              const Icon = val.icon;
-              return (
-                <div key={idx} className="bg-white rounded-2xl p-6 border border-gray-200/70 shadow-xs flex flex-col justify-between">
-                  <div>
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#009FE3] flex items-center justify-center mb-4">
-                      <Icon size={20} />
-                    </div>
-                    <h3 className="text-base font-bold text-gray-900 mb-2">{val.label}</h3>
-                    <p className="text-xs text-gray-500 leading-relaxed">{val.description}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* Milestones in Numbers */}
-        <section className="bg-white rounded-3xl p-8 border border-gray-200/70 shadow-xs">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 text-center">
-            {milestones.map((m, idx) => (
-              <div key={idx} className="space-y-1">
-                <div className="text-3xl sm:text-4xl font-black text-[#009FE3]">{m.number}</div>
-                <div className="text-sm font-bold text-gray-900">{m.label}</div>
-                <div className="text-xs text-gray-500">{m.description}</div>
+          <div className="space-y-4">
+            <div className="bg-white p-6 rounded-2xl border border-[#e4ded5] shadow-xs flex gap-4 items-start">
+              <div className="w-11 h-11 rounded-xl bg-[rgba(179,139,63,0.12)] text-[#b38b3f] flex items-center justify-center shrink-0">
+                <Award size={20} />
               </div>
-            ))}
-          </div>
-        </section>
+              <div className="space-y-1">
+                <h3 className="text-sm font-bold text-[#121518]">Track-Tested Cushioning</h3>
+                <p className="text-xs text-[#606870] leading-relaxed">Dual-density EVA foam engineered for responsive rebound and maximum knee protection.</p>
+              </div>
+            </div>
 
-        {/* INTELAGROW PVT. LTD. Corporate Info */}
-        <section className="bg-white rounded-3xl p-8 border border-gray-200/70 shadow-xs text-center max-w-2xl mx-auto space-y-3">
-          <span className="text-[11px] font-extrabold uppercase tracking-widest text-[#009FE3]">Corporate Headquarters</span>
-          <h3 className="text-xl font-bold text-gray-900">INTELAGROW PVT. LTD.</h3>
-          <p className="text-xs text-gray-600 leading-relaxed">
-            TOPSUN is a flagship brand owned and operated by <strong className="text-gray-900">INTELAGROW PVT. LTD.</strong>
-          </p>
-          <div className="pt-2 text-xs text-gray-500 max-w-md mx-auto">
-            <strong className="text-gray-700">Registered Office:</strong> A/90 NSB Road, Raniganj, Searsole Rajbari, Paschim Bardhaman - 713358, West Bengal, India
-          </div>
-          <div className="text-xs text-gray-500">
-            Official Email: <a href="mailto:topsunshoes7@gmail.com" className="text-[#009FE3] font-bold hover:underline">topsunshoes7@gmail.com</a> | Phone & WhatsApp: <a href="tel:+917485006659" className="text-gray-900 font-bold hover:underline">+91 7485006659</a>
-          </div>
-        </section>
-      </main>
+            <div className="bg-white p-6 rounded-2xl border border-[#e4ded5] shadow-xs flex gap-4 items-start">
+              <div className="w-11 h-11 rounded-xl bg-[rgba(179,139,63,0.12)] text-[#b38b3f] flex items-center justify-center shrink-0">
+                <Users size={20} />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-sm font-bold text-[#121518]">Indian Anatomy Fit</h3>
+                <p className="text-xs text-[#606870] leading-relaxed">Designed with generous toebox room tailored to standard Indian foot morphology.</p>
+              </div>
+            </div>
 
-      {/* Footer */}
-      <footer className="bg-[#0c0c0c] text-white py-12 px-6">
-        <div className="max-w-[1200px] mx-auto text-center space-y-4">
-          <p className="text-xs text-gray-400">© 2026 TOPSUN Performance Sneakers. All rights reserved.</p>
-          <div className="flex justify-center gap-6 text-xs text-gray-400 font-semibold">
-            <Link to="/privacy-policy" className="hover:text-white">Privacy Policy</Link>
-            <Link to="/terms-of-service" className="hover:text-white">Terms of Service</Link>
-            <Link to="/contact" className="hover:text-white">Contact Us</Link>
+            <div className="bg-white p-6 rounded-2xl border border-[#e4ded5] shadow-xs flex gap-4 items-start">
+              <div className="w-11 h-11 rounded-xl bg-[rgba(179,139,63,0.12)] text-[#b38b3f] flex items-center justify-center shrink-0">
+                <ShieldCheck size={20} />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-sm font-bold text-[#121518]">7-Day Size Guarantee</h3>
+                <p className="text-xs text-[#606870] leading-relaxed">Free reverse courier pickup if your shoes don't fit like a second skin.</p>
+              </div>
+            </div>
           </div>
         </div>
-      </footer>
+
+        {/* CTA Banner */}
+        <div className="bg-[#121518] text-white rounded-3xl p-8 sm:p-12 text-center space-y-4">
+          <h2
+            className="text-2xl sm:text-4xl font-semibold"
+            style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+          >
+            Ready to Elevate Your Stride?
+          </h2>
+          <p className="text-xs sm:text-sm text-gray-300 max-w-md mx-auto leading-relaxed">
+            Experience our bestselling running and athletic collection with free delivery across India.
+          </p>
+          <div className="pt-2">
+            <Link
+              to="/shop"
+              className="inline-flex items-center gap-2 px-8 py-3.5 bg-[#b38b3f] hover:bg-[#9a7535] text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-colors shadow-xs"
+            >
+              <span>Explore Collection</span>
+              <ArrowRight size={14} />
+            </Link>
+          </div>
+        </div>
+      </main>
     </div>
   );
 }

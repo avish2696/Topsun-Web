@@ -1,21 +1,53 @@
 import React, { useState, useEffect } from 'react';
 import Header from '@/app/components/Header';
-import { motion } from 'motion/react';
-import { Shield, MessageCircle, ArrowLeft } from 'lucide-react';
+import { Shield } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useShopping } from '@/app/context/ShoppingContext';
+import { SEOHead } from '@/app/components/SEOHead';
+import { Breadcrumbs } from '@/app/components/Breadcrumbs';
+
+const sections = [
+  {
+    title: '1. Information We Collect',
+    content:
+      'When you visit the TOPSUN store, create an account, or place an order, we collect essential details: your full name, shipping address, mobile phone number, and transaction logs.',
+  },
+  {
+    title: '2. How We Use Your Data',
+    content:
+      'Your personal details are used exclusively to process and ship your orders, send SMS/WhatsApp courier tracking updates, and provide customer support. We do not sell or rent your personal data to third parties.',
+  },
+  {
+    title: '3. Payment Security & Encryption',
+    content:
+      'All payment transactions are 256-bit encrypted and processed through RBI-authorized payment aggregators (Razorpay / UPI). TOPSUN does not store credit card or UPI credentials on our servers.',
+  },
+  {
+    title: '4. Cookies & Analytics',
+    content:
+      'We use secure browser cookies and analytics sessions to keep your shopping cart active and improve site performance.',
+  },
+  {
+    title: '5. Corporate Governance & Contact',
+    content:
+      'TOPSUN is operated by INTELAGROW PVT. LTD. (Registered Office: A/90 NSB Road, Raniganj, Searsole Rajbari, Paschim Bardhaman - 713358, West Bengal, India). For inquiries, contact topsunshoes7@gmail.com or WhatsApp +91 7485006659.',
+  },
+];
 
 export default function PrivacyPolicy() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { getCartItemCount } = useShopping();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
+  useEffect(() => { window.scrollTo(0, 0); }, []);
 
   return (
-    <div className="min-h-screen bg-[#fafafa]" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="min-h-screen bg-[#faf7f2] text-[#121518]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+      <SEOHead
+        title="Privacy Policy – TOPSUN Footwear | INTELAGROW PVT. LTD."
+        description="Read TOPSUN's official privacy policy regarding user data protection, 256-bit SSL encrypted checkout, and compliance."
+        breadcrumbs={[{ name: 'Home', url: '/' }, { name: 'Privacy Policy', url: '/privacy-policy' }]}
+      />
       <Header
         cartCount={getCartItemCount()}
         onCartClick={() => navigate('/cart')}
@@ -23,79 +55,37 @@ export default function PrivacyPolicy() {
         mobileMenuOpen={mobileMenuOpen}
       />
 
-      {/* Floating WhatsApp Support Button */}
-      <a
-        href="https://wa.me/917485006659?text=Hi%20TOPSUN%20Team!%20I%20have%20a%20privacy%20question."
-        target="_blank"
-        rel="noopener noreferrer"
-        className="fixed bottom-6 left-4 z-40 w-12 h-12 rounded-full bg-[#25D366] text-white flex items-center justify-center shadow-lg shadow-green-500/30 hover:scale-105 active:scale-95 transition-transform"
-        aria-label="WhatsApp"
-        title="WhatsApp Support"
-      >
-        <MessageCircle size={26} className="fill-current" />
-      </a>
+      <main className="pt-24 sm:pt-28 pb-24 max-w-[860px] mx-auto px-4 sm:px-6 space-y-6">
+        <Breadcrumbs items={[{ label: 'Privacy Policy' }]} />
 
-      <main className="pt-24 sm:pt-28 pb-20 max-w-[900px] mx-auto px-4 sm:px-6 space-y-6">
-        <div className="bg-white rounded-3xl p-6 sm:p-10 border border-gray-200/70 shadow-xs">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-[#009FE3] font-extrabold text-[10px] uppercase tracking-widest mb-3">
-            <Shield size={12} /> Privacy & Compliance
+        <div className="bg-white rounded-3xl border border-[#e4ded5] p-8 sm:p-12 shadow-xs space-y-6">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[rgba(179,139,63,0.12)] border border-[rgba(179,139,63,0.25)] text-[#8c6820] text-[11px] font-bold tracking-wider uppercase">
+            <Shield size={12} className="text-[#b38b3f]" /> Privacy & Compliance
           </div>
-          <h1 className="text-3xl sm:text-4xl font-black text-gray-900 leading-tight mb-2">
+          <h1
+            className="text-3xl sm:text-4xl font-semibold text-[#121518] leading-tight"
+            style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+          >
             Privacy Policy
           </h1>
-          <p className="text-xs text-gray-500 mb-8">Last updated: August 2026</p>
+          <p className="text-xs text-gray-400">Last updated: August 2026</p>
 
-          <div className="space-y-6 text-xs sm:text-sm text-gray-700 leading-relaxed">
-            <section className="space-y-2">
-              <h2 className="text-base font-bold text-gray-900">1. Information We Collect</h2>
-              <p>
-                When you visit the TOPSUN store, create an account with your mobile number, or place an order, we collect essential details: your name, shipping address, mobile phone number, and transaction logs.
-              </p>
-            </section>
-
-            <section className="space-y-2">
-              <h2 className="text-base font-bold text-gray-900">2. How We Use Your Data</h2>
-              <p>
-                Your personal details are used exclusively to process and ship your orders, send SMS/WhatsApp tracking notifications, and provide customer support. We do not sell your personal data to third parties.
-              </p>
-            </section>
-
-            <section className="space-y-2">
-              <h2 className="text-base font-bold text-gray-900">3. Payment Security & Encryption</h2>
-              <p>
-                All payment transactions are encrypted and processed through RBI-authorized payment aggregators (Razorpay / UPI). TOPSUN does not store credit card or UPI credentials on our servers.
-              </p>
-            </section>
-
-            <section className="space-y-2">
-              <h2 className="text-base font-bold text-gray-900">4. Cookies & Analytics</h2>
-              <p>
-                We use secure browser cookies and analytics sessions to keep your cart active and personalize your shopping experience.
-              </p>
-            </section>
-
-            <section className="space-y-2">
-              <h2 className="text-base font-bold text-gray-900">5. Company & Contact Information</h2>
-              <p>
-                TOPSUN is operated by <strong>INTELAGROW PVT. LTD.</strong> (Registered Office: A/90 NSB Road, Raniganj, Searsole Rajbari, Paschim Bardhaman - 713358, West Bengal, India).
-              </p>
-              <p>
-                For data access, deletion requests, or general inquiries, contact our compliance officer at <strong className="text-gray-900">topsunshoes7@gmail.com</strong> or WhatsApp support at <strong className="text-gray-900">+91 7485006659</strong>.
-              </p>
-            </section>
+          <div className="space-y-6 text-xs sm:text-sm text-[#606870] leading-relaxed divide-y divide-[#e4ded5]">
+            {sections.map((sec, idx) => (
+              <section key={idx} className="pt-6 first:pt-0 space-y-2">
+                <h2 className="text-base font-bold text-[#121518]">{sec.title}</h2>
+                <p>{sec.content}</p>
+              </section>
+            ))}
           </div>
         </div>
-      </main>
 
-      {/* Footer */}
-      <footer className="bg-[#0c0c0c] text-white py-12 px-6 text-center text-xs text-gray-400 space-y-3">
-        <p>© 2026 TOPSUN Performance Sneakers. All rights reserved.</p>
-        <div className="flex justify-center gap-4 text-gray-500 font-semibold">
-          <Link to="/about" className="hover:text-white">About Us</Link>
-          <Link to="/shop" className="hover:text-white">Shop</Link>
-          <Link to="/terms-of-service" className="hover:text-white">Terms of Service</Link>
+        <div className="text-center">
+          <Link to="/terms-of-service" className="text-xs text-[#b38b3f] hover:underline font-semibold">
+            View Terms of Service →
+          </Link>
         </div>
-      </footer>
+      </main>
     </div>
   );
 }

@@ -4,14 +4,13 @@ import { useAuth } from '@/app/context/AuthContext';
 import { ProtectedRoute } from '@/app/components/auth/ProtectedRoute';
 import Header from '@/app/components/Header';
 import { useShopping } from '@/app/context/ShoppingContext';
-import { supabase } from '@/supabase';
-import { motion, AnimatePresence } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
 import {
   LogOut, User, MapPin, ShoppingBag, Plus, Edit, Trash2,
-  Package, Truck, CheckCircle, Clock, ChevronRight, Loader,
-  Star, ArrowLeft, MessageCircle,
+  ChevronRight,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { SEOHead } from '@/app/components/SEOHead';
 
 interface SavedAddress {
   id: string;
@@ -26,7 +25,7 @@ interface SavedAddress {
   is_default: boolean;
 }
 
-type Tab = 'profile' | 'addresses' | 'orders';
+type Tab = 'profile' | 'addresses';
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
@@ -41,20 +40,18 @@ export default function ProfilePage() {
     navigate('/', { replace: true });
   };
 
-  // Addresses
   const [addresses, setAddresses] = useState<SavedAddress[]>([]);
   const [addingAddress, setAddingAddress] = useState(false);
   const [editAddr, setEditAddr] = useState<SavedAddress | null>(null);
   const [newAddr, setNewAddr] = useState({
-    full_name: user?.fullName || '', phone: user?.phone || '', address_line1: '',
-    address_line2: '', city: '', state: '', postal_code: '', country: 'India',
+    full_name: user?.fullName || '', phone: user?.phone || '',
+    address_line1: '', address_line2: '', city: '', state: '', postal_code: '', country: 'India',
   });
 
   useEffect(() => {
     if (!user) return;
-    const key = `topsun_addresses_${user.id}`;
     try {
-      const stored = localStorage.getItem(key);
+      const stored = localStorage.getItem(`topsun_addresses_${user.id}`);
       if (stored) setAddresses(JSON.parse(stored));
     } catch {}
   }, [user]);
@@ -72,15 +69,10 @@ export default function ProfilePage() {
       return;
     }
     if (editAddr) {
-      const updated = addresses.map(a => a.id === editAddr.id ? { ...editAddr } : a);
-      saveAddresses(updated);
+      saveAddresses(addresses.map(a => a.id === editAddr.id ? { ...editAddr } : a));
       toast.success('Address updated!');
     } else {
-      const added: SavedAddress = {
-        id: `addr_${Date.now()}`,
-        ...newAddr,
-        is_default: addresses.length === 0,
-      };
+      const added: SavedAddress = { id: `addr_${Date.now()}`, ...newAddr, is_default: addresses.length === 0 };
       saveAddresses([added, ...addresses]);
       toast.success('Address saved!');
     }
@@ -89,25 +81,18 @@ export default function ProfilePage() {
     setNewAddr({ full_name: user?.fullName || '', phone: user?.phone || '', address_line1: '', address_line2: '', city: '', state: '', postal_code: '', country: 'India' });
   };
 
-  const handleDeleteAddress = (id: string) => {
-    saveAddresses(addresses.filter(a => a.id !== id));
-    toast.success('Address deleted');
-  };
+  const inputCls = "w-full h-11 px-3.5 bg-[#faf7f2] border border-[#d5cfc6] rounded-xl text-xs font-medium outline-none focus:border-[#121518] transition-colors text-[#121518] placeholder:text-gray-400";
+  const labelCls = "text-[11px] font-bold text-[#606870] uppercase tracking-wider block mb-1.5";
 
-  const handleSetDefault = (id: string) => {
-    saveAddresses(addresses.map(a => ({ ...a, is_default: a.id === id })));
-    toast.success('Default address set');
-  };
-
-  const tabs: { key: Tab; label: string; icon: React.ReactNode }[] = [
-    { key: 'profile',   label: 'Profile',   icon: <User size={16} /> },
-    { key: 'addresses', label: 'Addresses', icon: <MapPin size={16} /> },
-    { key: 'orders',    label: 'My Orders', icon: <ShoppingBag size={16} /> },
+  const tabs = [
+    { key: 'profile' as Tab, label: 'Profile', icon: <User size={15} /> },
+    { key: 'addresses' as Tab, label: 'Addresses', icon: <MapPin size={15} /> },
   ];
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-[#fafafa]" style={{ fontFamily: "'Inter', sans-serif" }}>
+      <div className="min-h-screen bg-[#faf7f2] text-[#121518]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+        <SEOHead title="My Account & Profile | TOPSUN" description="Manage your TOPSUN customer account details, saved addresses, and active orders." noIndex={true} />
         <Header
           cartCount={getCartItemCount()}
           onCartClick={() => navigate('/cart')}
@@ -115,51 +100,65 @@ export default function ProfilePage() {
           mobileMenuOpen={mobileMenuOpen}
         />
 
-        {/* Floating WhatsApp Support Button */}
-        <a
-          href="https://wa.me/917485006659?text=Hi%20TOPSUN%20Team!%20I%20have%20an%20account%20inquiry."
-          target="_blank"
-          rel="noopener noreferrer"
-          className="fixed bottom-6 left-4 z-40 w-12 h-12 rounded-full bg-[#25D366] text-white flex items-center justify-center shadow-lg shadow-green-500/30 hover:scale-105 active:scale-95 transition-transform"
-          aria-label="WhatsApp"
-          title="WhatsApp Support"
-        >
-          <MessageCircle size={26} className="fill-current" />
-        </a>
-
-        <div className="max-w-3xl mx-auto px-4 pt-24 sm:pt-28 pb-16 space-y-6">
+        <div className="max-w-3xl mx-auto px-4 pt-24 sm:pt-28 pb-20 space-y-6">
           {/* User Banner */}
-          <div className="bg-white rounded-3xl p-6 border border-gray-200/70 shadow-xs flex items-center justify-between gap-4">
+          <div className="bg-white rounded-3xl border border-[#e4ded5] p-6 shadow-xs flex items-center justify-between gap-4">
             <div className="flex items-center gap-3.5 min-w-0">
-              <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#009FE3] flex items-center justify-center text-xl font-extrabold flex-shrink-0">
+              <div className="w-12 h-12 rounded-2xl bg-[rgba(179,139,63,0.12)] text-[#b38b3f] flex items-center justify-center text-lg font-bold shrink-0 border border-[rgba(179,139,63,0.25)]">
                 {user?.fullName?.[0]?.toUpperCase() || user?.phone?.[0] || 'U'}
               </div>
-              <div className="min-w-0 flex-1">
-                <h2 className="text-base font-bold text-gray-900 truncate">{user?.fullName || 'TOPSUN Customer'}</h2>
-                <p className="text-xs text-gray-500 truncate">{user?.phone || user?.email}</p>
+              <div className="min-w-0">
+                <h2 className="text-base font-bold text-[#121518] truncate">{user?.fullName || 'TOPSUN Customer'}</h2>
+                <p className="text-xs text-[#606870] truncate mt-0.5">{user?.phone || user?.email}</p>
+                <span className="text-[10px] text-[#b38b3f] font-bold uppercase tracking-wider">Active Member</span>
               </div>
             </div>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-full border border-rose-200 text-rose-600 text-xs font-bold hover:bg-rose-50 transition-colors"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-red-200 text-red-600 text-xs font-bold hover:bg-red-50 transition-colors shrink-0 cursor-pointer"
             >
               <LogOut size={13} /> Logout
             </button>
           </div>
 
+          {/* Quick Links */}
+          <div className="grid grid-cols-2 gap-4">
+            <button
+              onClick={() => navigate('/orders')}
+              className="bg-white rounded-2xl border border-[#e4ded5] p-5 flex items-center gap-3.5 hover:border-[#dfc38a] transition-all group text-left cursor-pointer shadow-xs"
+            >
+              <div className="w-10 h-10 bg-[rgba(179,139,63,0.1)] rounded-xl flex items-center justify-center group-hover:bg-[rgba(179,139,63,0.2)] transition-colors">
+                <ShoppingBag size={18} className="text-[#b38b3f]" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-[#121518]">My Orders</p>
+                <p className="text-[11px] text-[#606870]">Order history & invoices</p>
+              </div>
+            </button>
+            <button
+              onClick={() => navigate('/track-order')}
+              className="bg-white rounded-2xl border border-[#e4ded5] p-5 flex items-center gap-3.5 hover:border-[#dfc38a] transition-all group text-left cursor-pointer shadow-xs"
+            >
+              <div className="w-10 h-10 bg-[rgba(179,139,63,0.1)] rounded-xl flex items-center justify-center group-hover:bg-[rgba(179,139,63,0.2)] transition-colors">
+                <ChevronRight size={18} className="text-[#b38b3f]" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-[#121518]">Track Package</p>
+                <p className="text-[11px] text-[#606870]">Live courier tracking</p>
+              </div>
+            </button>
+          </div>
+
           {/* Navigation Tabs */}
-          <div className="flex bg-white rounded-2xl p-1 border border-gray-200/70 shadow-xs gap-1">
+          <div className="flex bg-white rounded-2xl p-1.5 border border-[#e4ded5] shadow-xs gap-1.5">
             {tabs.map((t) => (
               <button
                 key={t.key}
-                onClick={() => {
-                  if (t.key === 'orders') navigate('/orders');
-                  else setActiveTab(t.key);
-                }}
-                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                onClick={() => setActiveTab(t.key)}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   activeTab === t.key
-                    ? 'bg-[#009FE3] text-white shadow-xs'
-                    : 'text-gray-600 hover:bg-gray-50'
+                    ? 'bg-[#121518] text-white shadow-xs'
+                    : 'text-[#606870] hover:bg-[#faf7f2]'
                 }`}
               >
                 {t.icon} <span>{t.label}</span>
@@ -172,29 +171,29 @@ export default function ProfilePage() {
             {activeTab === 'profile' && (
               <motion.div
                 key="profile"
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                className="bg-white rounded-3xl p-6 border border-gray-200/70 shadow-xs space-y-4"
+                className="bg-white rounded-3xl border border-[#e4ded5] p-6 sm:p-8 shadow-xs space-y-4"
               >
-                <h3 className="text-base font-bold text-gray-900">Personal Information</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="bg-gray-50 p-4 rounded-2xl">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Full Name</span>
-                    <p className="text-xs font-bold text-gray-900">{user?.fullName || 'Not Provided'}</p>
-                  </div>
-                  <div className="bg-gray-50 p-4 rounded-2xl">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Phone / Mobile</span>
-                    <p className="text-xs font-bold text-gray-900">{user?.phone || '—'}</p>
-                  </div>
-                  <div className="bg-gray-50 p-4 rounded-2xl">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Auth Provider</span>
-                    <p className="text-xs font-bold text-[#009FE3] uppercase">{user?.provider || 'phone'}</p>
-                  </div>
-                  <div className="bg-gray-50 p-4 rounded-2xl">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Member Status</span>
-                    <p className="text-xs font-bold text-emerald-600">Active Member</p>
-                  </div>
+                <h3
+                  className="text-xl font-semibold text-[#121518]"
+                  style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+                >
+                  Personal Information
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  {[
+                    { label: 'Full Name', value: user?.fullName || 'Not Provided' },
+                    { label: 'Phone / Mobile', value: user?.phone || '—' },
+                    { label: 'Auth Provider', value: user?.provider || 'phone' },
+                    { label: 'Member Status', value: 'Active Member' },
+                  ].map((item) => (
+                    <div key={item.label} className="bg-[#faf7f2] p-4 rounded-2xl border border-[#e4ded5]">
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">{item.label}</span>
+                      <p className="text-xs font-bold text-[#121518]">{item.value}</p>
+                    </div>
+                  ))}
                 </div>
               </motion.div>
             )}
@@ -202,112 +201,86 @@ export default function ProfilePage() {
             {activeTab === 'addresses' && (
               <motion.div
                 key="addresses"
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
                 className="space-y-4"
               >
-                {/* Add/Edit Address Form */}
                 {(addingAddress || editAddr) && (
-                  <div className="bg-white rounded-3xl p-6 border border-gray-200/70 shadow-xs space-y-4">
-                    <h3 className="text-base font-bold text-gray-900">{editAddr ? 'Edit Address' : 'Add New Address'}</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="bg-white rounded-3xl border border-[#e4ded5] p-6 sm:p-8 shadow-xs space-y-4">
+                    <h3
+                      className="text-xl font-semibold text-[#121518]"
+                      style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+                    >
+                      {editAddr ? 'Edit Address' : 'Add New Shipping Address'}
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="text-[11px] font-bold text-gray-600 uppercase block mb-1">Full Name *</label>
+                        <label className={labelCls}>Full Name *</label>
                         <input
                           type="text"
                           value={(editAddr ? editAddr.full_name : newAddr.full_name) || ''}
-                          onChange={(e) => {
-                            if (editAddr) setEditAddr({ ...editAddr, full_name: e.target.value });
-                            else setNewAddr({ ...newAddr, full_name: e.target.value });
-                          }}
-                          placeholder="Your name"
-                          className="w-full h-11 px-3.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-gray-900"
+                          onChange={(e) => { if (editAddr) setEditAddr({ ...editAddr, full_name: e.target.value }); else setNewAddr({ ...newAddr, full_name: e.target.value }); }}
+                          placeholder="Your full name"
+                          className={inputCls}
                         />
                       </div>
-
                       <div>
-                        <label className="text-[11px] font-bold text-gray-600 uppercase block mb-1">Phone *</label>
+                        <label className={labelCls}>Phone *</label>
                         <input
                           type="text"
                           value={(editAddr ? editAddr.phone : newAddr.phone) || ''}
-                          onChange={(e) => {
-                            if (editAddr) setEditAddr({ ...editAddr, phone: e.target.value });
-                            else setNewAddr({ ...newAddr, phone: e.target.value });
-                          }}
+                          onChange={(e) => { if (editAddr) setEditAddr({ ...editAddr, phone: e.target.value }); else setNewAddr({ ...newAddr, phone: e.target.value }); }}
                           placeholder="10-digit mobile"
-                          className="w-full h-11 px-3.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-gray-900"
+                          className={inputCls}
                         />
                       </div>
-
                       <div className="sm:col-span-2">
-                        <label className="text-[11px] font-bold text-gray-600 uppercase block mb-1">Street Address *</label>
+                        <label className={labelCls}>Street Address *</label>
                         <input
                           type="text"
                           value={(editAddr ? editAddr.address_line1 : newAddr.address_line1) || ''}
-                          onChange={(e) => {
-                            if (editAddr) setEditAddr({ ...editAddr, address_line1: e.target.value });
-                            else setNewAddr({ ...newAddr, address_line1: e.target.value });
-                          }}
+                          onChange={(e) => { if (editAddr) setEditAddr({ ...editAddr, address_line1: e.target.value }); else setNewAddr({ ...newAddr, address_line1: e.target.value }); }}
                           placeholder="House / Flat / Street"
-                          className="w-full h-11 px-3.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-gray-900"
+                          className={inputCls}
                         />
                       </div>
-
                       <div>
-                        <label className="text-[11px] font-bold text-gray-600 uppercase block mb-1">City *</label>
+                        <label className={labelCls}>City *</label>
                         <input
                           type="text"
                           value={(editAddr ? editAddr.city : newAddr.city) || ''}
-                          onChange={(e) => {
-                            if (editAddr) setEditAddr({ ...editAddr, city: e.target.value });
-                            else setNewAddr({ ...newAddr, city: e.target.value });
-                          }}
+                          onChange={(e) => { if (editAddr) setEditAddr({ ...editAddr, city: e.target.value }); else setNewAddr({ ...newAddr, city: e.target.value }); }}
                           placeholder="City"
-                          className="w-full h-11 px-3.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-gray-900"
+                          className={inputCls}
                         />
                       </div>
-
                       <div>
-                        <label className="text-[11px] font-bold text-gray-600 uppercase block mb-1">State *</label>
+                        <label className={labelCls}>State *</label>
                         <input
                           type="text"
                           value={(editAddr ? editAddr.state : newAddr.state) || ''}
-                          onChange={(e) => {
-                            if (editAddr) setEditAddr({ ...editAddr, state: e.target.value });
-                            else setNewAddr({ ...newAddr, state: e.target.value });
-                          }}
+                          onChange={(e) => { if (editAddr) setEditAddr({ ...editAddr, state: e.target.value }); else setNewAddr({ ...newAddr, state: e.target.value }); }}
                           placeholder="State"
-                          className="w-full h-11 px-3.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-gray-900"
+                          className={inputCls}
                         />
                       </div>
-
                       <div>
-                        <label className="text-[11px] font-bold text-gray-600 uppercase block mb-1">PIN Code *</label>
+                        <label className={labelCls}>PIN Code *</label>
                         <input
                           type="text"
                           value={(editAddr ? editAddr.postal_code : newAddr.postal_code) || ''}
-                          onChange={(e) => {
-                            if (editAddr) setEditAddr({ ...editAddr, postal_code: e.target.value });
-                            else setNewAddr({ ...newAddr, postal_code: e.target.value });
-                          }}
+                          onChange={(e) => { if (editAddr) setEditAddr({ ...editAddr, postal_code: e.target.value }); else setNewAddr({ ...newAddr, postal_code: e.target.value }); }}
                           placeholder="6-digit PIN"
-                          className="w-full h-11 px-3.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-gray-900"
+                          className={inputCls}
                         />
                       </div>
                     </div>
-
                     <div className="flex gap-2 pt-2">
-                      <button
-                        onClick={handleSaveAddress}
-                        className="px-6 py-2.5 bg-gray-900 hover:bg-black text-white text-xs font-bold rounded-xl"
-                      >
+                      <button onClick={handleSaveAddress} className="px-6 py-2.5 bg-[#121518] hover:bg-black text-white text-xs font-bold rounded-xl transition-colors cursor-pointer">
                         Save Address
                       </button>
-                      <button
-                        onClick={() => { setAddingAddress(false); setEditAddr(null); }}
-                        className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-xl"
-                      >
+                      <button onClick={() => { setAddingAddress(false); setEditAddr(null); }} className="px-5 py-2.5 bg-[#faf7f2] hover:bg-[#ece7de] text-[#121518] text-xs font-bold rounded-xl border border-[#e4ded5] transition-colors cursor-pointer">
                         Cancel
                       </button>
                     </div>
@@ -315,56 +288,52 @@ export default function ProfilePage() {
                 )}
 
                 {/* Address List */}
-                <div className="bg-white rounded-3xl p-6 border border-gray-200/70 shadow-xs space-y-4">
+                <div className="bg-white rounded-3xl border border-[#e4ded5] p-6 sm:p-8 shadow-xs space-y-4">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-base font-bold text-gray-900">Saved Addresses</h3>
+                    <h3
+                      className="text-xl font-semibold text-[#121518]"
+                      style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+                    >
+                      Saved Addresses
+                    </h3>
                     {!addingAddress && !editAddr && (
                       <button
                         onClick={() => { setAddingAddress(true); setEditAddr(null); }}
-                        className="px-4 py-2 bg-gray-900 hover:bg-black text-white text-xs font-bold rounded-xl flex items-center gap-1.5"
+                        className="px-4 py-2 bg-[#121518] hover:bg-black text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
                       >
-                        <Plus size={14} /> Add New
+                        <Plus size={13} /> Add New
                       </button>
                     )}
                   </div>
 
                   {addresses.length === 0 ? (
-                    <div className="text-center py-10 border-2 border-dashed border-gray-200 rounded-2xl">
-                      <MapPin size={32} className="mx-auto text-gray-300 mb-2" />
-                      <p className="text-xs text-gray-500">No saved addresses yet</p>
+                    <div className="text-center py-10 border-2 border-dashed border-[#e4ded5] rounded-2xl">
+                      <MapPin size={28} className="mx-auto text-gray-300 mb-2" />
+                      <p className="text-xs text-[#606870]">No saved addresses yet</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
                       {addresses.map((addr) => (
-                        <div
-                          key={addr.id}
-                          className="p-4 rounded-2xl border border-gray-200 flex justify-between items-start"
-                        >
+                        <div key={addr.id} className="p-4 rounded-2xl border border-[#e4ded5] flex justify-between items-start gap-3">
                           <div>
                             <div className="flex items-center gap-2 mb-1">
-                              <span className="font-bold text-sm text-gray-900">{addr.full_name}</span>
+                              <span className="font-bold text-sm text-[#121518]">{addr.full_name}</span>
                               {addr.is_default && (
-                                <span className="text-[10px] bg-blue-50 text-[#009FE3] px-2 py-0.5 rounded-md font-extrabold">
+                                <span className="text-[10px] bg-[rgba(179,139,63,0.12)] text-[#8c6820] border border-[rgba(179,139,63,0.25)] px-2 py-0.5 rounded-md font-bold">
                                   Default
                                 </span>
                               )}
                             </div>
-                            <p className="text-xs text-gray-500">{addr.phone}</p>
-                            <p className="text-xs text-gray-600 mt-1">
+                            <p className="text-xs text-[#606870]">{addr.phone}</p>
+                            <p className="text-xs text-gray-700 mt-1">
                               {addr.address_line1}, {addr.city}, {addr.state} – {addr.postal_code}
                             </p>
                           </div>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => { setEditAddr(addr); setAddingAddress(false); }}
-                              className="p-1.5 text-gray-400 hover:text-gray-800"
-                            >
+                          <div className="flex gap-1.5 shrink-0">
+                            <button onClick={() => { setEditAddr(addr); setAddingAddress(false); }} className="p-2 text-gray-400 hover:text-[#121518] hover:bg-[#faf7f2] rounded-lg transition-colors cursor-pointer">
                               <Edit size={14} />
                             </button>
-                            <button
-                              onClick={() => handleDeleteAddress(addr.id)}
-                              className="p-1.5 text-gray-400 hover:text-rose-600"
-                            >
+                            <button onClick={() => { saveAddresses(addresses.filter(a => a.id !== addr.id)); toast.success('Address deleted'); }} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer">
                               <Trash2 size={14} />
                             </button>
                           </div>

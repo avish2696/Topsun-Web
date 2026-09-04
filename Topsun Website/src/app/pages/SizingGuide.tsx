@@ -1,28 +1,32 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '@/app/components/Header';
-import { motion } from 'motion/react';
-import { Ruler, CheckCircle2, MessageCircle, ArrowRight } from 'lucide-react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Ruler, ChevronRight, Info, MessageCircle, ArrowRight, Sparkles } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useShopping } from '@/app/context/ShoppingContext';
+import { SEOHead } from '@/app/components/SEOHead';
+import { Breadcrumbs } from '@/app/components/Breadcrumbs';
+
+const SIZE_TABLE = [
+  { uk: '7', india: '7', us: '8', eu: '41', foot: '25.5' },
+  { uk: '8', india: '8', us: '9', eu: '42', foot: '26.5' },
+  { uk: '9', india: '9', us: '10', eu: '43', foot: '27.5' },
+  { uk: '10', india: '10', us: '11', eu: '44', foot: '28.5' },
+];
 
 export default function SizingGuide() {
-  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { getCartItemCount } = useShopping();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
-
-  const sizeChart = [
-    { uk: 7, us: 8, eu: 41, cm: 25.5, foot: 'Standard Fit' },
-    { uk: 8, us: 9, eu: 42, cm: 26.5, foot: 'Standard Fit' },
-    { uk: 9, us: 10, eu: 43, cm: 27.5, foot: 'Standard Fit' },
-    { uk: 10, us: 11, eu: 44, cm: 28.5, foot: 'Standard Fit' },
-  ];
+  useEffect(() => { window.scrollTo(0, 0); }, []);
 
   return (
-    <div className="min-h-screen bg-[#fafafa]" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="min-h-screen bg-[#faf7f2] text-[#121518]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+      <SEOHead
+        title="Shoe Size Chart & UK/India Conversion Guide | TOPSUN"
+        description="Find your perfect shoe size with TOPSUN's UK / Indian footwear size guide. Accurate CM foot measurements and step-by-step sizing instructions."
+        breadcrumbs={[{ name: 'Home', url: '/' }, { name: 'Sizing Guide', url: '/sizing-guide' }]}
+      />
       <Header
         cartCount={getCartItemCount()}
         onCartClick={() => navigate('/cart')}
@@ -30,77 +34,54 @@ export default function SizingGuide() {
         mobileMenuOpen={mobileMenuOpen}
       />
 
-      {/* Floating WhatsApp Support Button */}
-      <a
-        href="https://wa.me/917485006659?text=Hi%20TOPSUN%20Team!%20I%20need%20help%20choosing%20my%20shoe%20size."
-        target="_blank"
-        rel="noopener noreferrer"
-        className="fixed bottom-6 left-4 z-40 w-12 h-12 rounded-full bg-[#25D366] text-white flex items-center justify-center shadow-lg shadow-green-500/30 hover:scale-105 active:scale-95 transition-transform"
-        aria-label="WhatsApp"
-        title="WhatsApp Support"
-      >
-        <MessageCircle size={26} className="fill-current" />
-      </a>
+      <main className="pt-24 sm:pt-28 pb-24 max-w-[900px] mx-auto px-4 sm:px-6 space-y-10">
+        <Breadcrumbs items={[{ label: 'Sizing Guide' }]} />
 
-      <main className="pt-24 sm:pt-28 pb-20 max-w-[900px] mx-auto px-4 sm:px-6 space-y-8">
-        {/* Header Hero */}
-        <section className="bg-white rounded-3xl p-6 sm:p-10 border border-gray-200/70 shadow-xs text-center">
-          <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-blue-50 text-[#009FE3] font-extrabold text-[11px] uppercase tracking-widest mb-3">
-            Perfect Fit Guarantee
+        {/* Hero */}
+        <div className="text-center space-y-3 pt-2">
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[rgba(179,139,63,0.12)] border border-[rgba(179,139,63,0.25)] text-[#8c6820] text-[11px] font-bold tracking-wider uppercase">
+            <Ruler size={12} className="text-[#b38b3f]" />
+            Find Your Exact Fit
           </span>
-          <h1 className="text-3xl sm:text-4xl font-black text-gray-900 leading-tight">
-            Footwear Sizing Chart (UK)
+          <h1
+            className="text-3xl sm:text-5xl font-semibold text-[#121518] leading-tight"
+            style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+          >
+            Footwear Sizing Chart
           </h1>
-          <p className="text-xs sm:text-sm text-gray-500 max-w-md mx-auto mt-2 leading-relaxed">
-            All TOPSUN sneakers are crafted to standard UK sizing. Use this chart to find your exact match.
+          <p className="text-xs sm:text-sm text-[#606870] max-w-lg mx-auto leading-relaxed">
+            All TOPSUN athletic footwear follows standard UK / Indian sizing and fits True to Size (TTS). Use this guide to ensure a glove-like athletic fit.
           </p>
-        </section>
-
-        {/* Measuring Steps */}
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-200/70 shadow-xs space-y-4">
-          <div className="flex items-center gap-2">
-            <Ruler size={20} className="text-[#009FE3]" />
-            <h2 className="text-base sm:text-lg font-bold text-gray-900">How to Measure Your Foot Length</h2>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-            <div className="bg-gray-50 p-4 rounded-2xl">
-              <span className="text-xs font-black text-[#009FE3]">STEP 01</span>
-              <p className="text-xs text-gray-700 font-medium mt-1">Place a white sheet of paper on a flat hard floor against a wall.</p>
-            </div>
-            <div className="bg-gray-50 p-4 rounded-2xl">
-              <span className="text-xs font-black text-[#009FE3]">STEP 02</span>
-              <p className="text-xs text-gray-700 font-medium mt-1">Stand on it with your heel touching the wall and mark your longest toe.</p>
-            </div>
-            <div className="bg-gray-50 p-4 rounded-2xl">
-              <span className="text-xs font-black text-[#009FE3]">STEP 03</span>
-              <p className="text-xs text-gray-700 font-medium mt-1">Measure the distance with a ruler in cm and check the table below.</p>
-            </div>
-          </div>
         </div>
 
-        {/* Size Table */}
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-200/70 shadow-xs overflow-hidden">
-          <h3 className="text-base font-bold text-gray-900 mb-4">Official Conversion Chart</h3>
+        {/* Size Conversion Table */}
+        <div className="bg-white rounded-3xl border border-[#e4ded5] overflow-hidden shadow-xs">
+          <div className="px-6 py-4 border-b border-[#e4ded5] bg-[#faf7f2]">
+            <h2
+              className="text-xl font-semibold text-[#121518]"
+              style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+            >
+              Size Conversion Chart
+            </h2>
+          </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
+            <table className="w-full">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-200 text-gray-500 font-bold uppercase text-[10px]">
-                  <th className="p-3.5">UK Size</th>
-                  <th className="p-3.5">US Size</th>
-                  <th className="p-3.5">EU Size</th>
-                  <th className="p-3.5">Length (cm)</th>
-                  <th className="p-3.5">Recommendation</th>
+                <tr className="bg-[#faf7f2] border-b border-[#e4ded5]">
+                  {['UK / India', 'US Men', 'EU Size', 'Foot Length (CM)'].map((h) => (
+                    <th key={h} className="px-6 py-3.5 text-left text-xs font-bold text-[#606870] uppercase tracking-wider">
+                      {h}
+                    </th>
+                  ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
-                {sizeChart.map((row, i) => (
-                  <tr key={i} className="hover:bg-blue-50/40 transition-colors">
-                    <td className="p-3.5 font-extrabold text-sm text-gray-900">UK {row.uk}</td>
-                    <td className="p-3.5 text-gray-600 font-semibold">US {row.us}</td>
-                    <td className="p-3.5 text-gray-600 font-semibold">EU {row.eu}</td>
-                    <td className="p-3.5 font-mono font-bold text-[#009FE3]">{row.cm} cm</td>
-                    <td className="p-3.5 text-emerald-600 font-bold">{row.foot}</td>
+              <tbody className="divide-y divide-[#e4ded5]">
+                {SIZE_TABLE.map((row) => (
+                  <tr key={row.uk} className="hover:bg-[#faf7f2] transition-colors">
+                    <td className="px-6 py-4 font-bold text-sm text-[#121518]">UK {row.uk} / IN {row.india}</td>
+                    <td className="px-6 py-4 text-xs text-gray-700">US {row.us}</td>
+                    <td className="px-6 py-4 text-xs text-gray-700">EU {row.eu}</td>
+                    <td className="px-6 py-4 text-xs font-semibold text-[#b38b3f]">{row.foot} cm</td>
                   </tr>
                 ))}
               </tbody>
@@ -108,35 +89,72 @@ export default function SizingGuide() {
           </div>
         </div>
 
-        {/* Pro Sizing Tip */}
-        <div className="bg-blue-50/80 border border-blue-200 rounded-3xl p-6 flex items-start gap-3.5">
-          <CheckCircle2 size={22} className="text-[#009FE3] flex-shrink-0 mt-0.5" />
-          <div className="text-xs text-blue-900 leading-relaxed">
-            <strong className="block text-sm font-bold mb-1">Wide Foot Recommendation:</strong>
-            If your feet are broader than average or you prefer a relaxed toe box for long running sessions, choose one size up (e.g. if you normally wear UK 8, order UK 9).
+        {/* How to Measure Steps */}
+        <div className="bg-white rounded-3xl border border-[#e4ded5] p-8 sm:p-10 shadow-xs space-y-6">
+          <h2
+            className="text-2xl font-semibold text-[#121518]"
+            style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+          >
+            How to Measure Your Foot Length
+          </h2>
+          <ol className="space-y-4">
+            {[
+              'Place a blank sheet of paper on a flat hard floor against a wall.',
+              'Stand on the paper with your heel lightly touching the wall.',
+              'Mark the longest point of your toes with a pen held completely vertically.',
+              'Measure the distance from the edge of the paper to the mark in centimetres.',
+              'Compare your measurement with our chart. If you fall between sizes, order the larger size.',
+            ].map((step, i) => (
+              <li key={i} className="flex items-start gap-3.5 text-xs sm:text-sm text-[#606870]">
+                <span className="w-6 h-6 rounded-full bg-[#121518] text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                  {i + 1}
+                </span>
+                <span className="leading-relaxed">{step}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+
+        {/* Expert Fit Tips */}
+        <div className="bg-[#121518] text-white rounded-3xl p-8 sm:p-10 space-y-4 shadow-xs">
+          <div className="flex items-center gap-2">
+            <Info size={18} className="text-[#dfc38a] shrink-0" />
+            <h3
+              className="text-xl sm:text-2xl font-semibold text-white"
+              style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+            >
+              Fit Recommendations
+            </h3>
+          </div>
+          <ul className="space-y-2 text-xs text-gray-300">
+            <li className="flex items-start gap-2"><ChevronRight size={13} className="text-[#dfc38a] mt-0.5 shrink-0" /> Measure your feet in the evening when they are naturally at their largest.</li>
+            <li className="flex items-start gap-2"><ChevronRight size={13} className="text-[#dfc38a] mt-0.5 shrink-0" /> All TOPSUN running shoes feature generous toebox room to allow natural toe splay.</li>
+            <li className="flex items-start gap-2"><ChevronRight size={13} className="text-[#dfc38a] mt-0.5 shrink-0" /> If you have wider feet, consider going half a size up for extra lateral comfort.</li>
+          </ul>
+          <div className="pt-2">
+            <a
+              href="https://wa.me/917485006659?text=Hi%20TOPSUN!%20I%20need%20help%20choosing%20the%20right%20shoe%20size."
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-[#25D366] hover:bg-green-600 text-white text-xs font-bold rounded-xl transition-colors shadow-xs"
+            >
+              <MessageCircle size={14} />
+              <span>Ask Our Sizing Expert</span>
+            </a>
           </div>
         </div>
 
-        {/* CTA Shop */}
-        <div className="text-center pt-2">
+        {/* CTA */}
+        <div className="text-center">
           <Link
             to="/shop"
-            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full bg-gray-900 hover:bg-black text-white font-bold text-xs shadow-md transition-colors"
+            className="inline-flex items-center gap-2 px-8 py-3.5 bg-[#121518] text-white rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-black transition-colors shadow-xs"
           >
-            Browse Footwear Collection <ArrowRight size={14} />
+            <span>Shop All Footwear</span>
+            <ArrowRight size={14} />
           </Link>
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="bg-[#0c0c0c] text-white py-12 px-6 text-center text-xs text-gray-400 space-y-3">
-        <p>© 2026 TOPSUN Performance Sneakers. All rights reserved.</p>
-        <div className="flex justify-center gap-4 text-gray-500 font-semibold">
-          <Link to="/about" className="hover:text-white">About Us</Link>
-          <Link to="/shop" className="hover:text-white">Shop</Link>
-          <Link to="/contact" className="hover:text-white">Contact</Link>
-        </div>
-      </footer>
     </div>
   );
 }

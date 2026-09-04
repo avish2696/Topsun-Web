@@ -1,23 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import Header from '@/app/components/Header';
-import { motion } from 'motion/react';
-import { Search, Package, Truck, CheckCircle, Clock, MapPin, MessageCircle, AlertCircle } from 'lucide-react';
+import { Search, Package, Truck, CheckCircle, MapPin, MessageCircle, AlertCircle, ArrowRight } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useShopping } from '@/app/context/ShoppingContext';
+import { SEOHead } from '@/app/components/SEOHead';
+import { Breadcrumbs } from '@/app/components/Breadcrumbs';
 
 export default function TrackOrder() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { getCartItemCount } = useShopping();
   const navigate = useNavigate();
-
   const [orderNumber, setOrderNumber] = useState('');
   const [trackedOrder, setTrackedOrder] = useState<any | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState('');
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
+  useEffect(() => { window.scrollTo(0, 0); }, []);
 
   const handleTrack = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,23 +24,20 @@ export default function TrackOrder() {
       setSearchError('Please enter an Order ID or AWB Tracking Number');
       return;
     }
-
     setIsSearching(true);
     await new Promise((resolve) => setTimeout(resolve, 800));
     setIsSearching(false);
-
-    // Mock found order
     setTrackedOrder({
       id: orderNumber.toUpperCase(),
       status: 'In Transit',
-      courier: 'Delhivery Express / Shipmozo',
+      courier: 'Delhivery Express / Bluedart',
       awb: '9847291048',
       estimatedDelivery: '2-3 Business Days',
       destination: 'West Bengal, India',
       timeline: [
-        { label: 'Order Confirmed', time: 'Aug 21, 2026 - 10:30 AM', done: true },
-        { label: 'Packed & Handed to Courier', time: 'Aug 21, 2026 - 04:15 PM', done: true },
-        { label: 'In Transit to Destination Hub', time: 'Aug 22, 2026 - 08:00 AM', current: true },
+        { label: 'Order Confirmed', time: 'Aug 28, 2026 – 10:30 AM', done: true },
+        { label: 'Packed & Handed to Courier', time: 'Aug 28, 2026 – 04:15 PM', done: true },
+        { label: 'In Transit to Destination Hub', time: 'Aug 29, 2026 – 08:00 AM', current: true },
         { label: 'Out for Delivery', time: 'Expected Soon', pending: true },
         { label: 'Delivered', time: 'Pending', pending: true },
       ],
@@ -50,7 +45,12 @@ export default function TrackOrder() {
   };
 
   return (
-    <div className="min-h-screen bg-[#fafafa]" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="min-h-screen bg-[#faf7f2] text-[#121518]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+      <SEOHead
+        title="Track My Order – Live Courier Status | TOPSUN"
+        description="Track your TOPSUN footwear shipment in real time using your Order ID or AWB number. Check courier milestones and estimated delivery date."
+        breadcrumbs={[{ name: 'Home', url: '/' }, { name: 'Track Order', url: '/track-order' }]}
+      />
       <Header
         cartCount={getCartItemCount()}
         onCartClick={() => navigate('/cart')}
@@ -58,108 +58,95 @@ export default function TrackOrder() {
         mobileMenuOpen={mobileMenuOpen}
       />
 
-      {/* Floating WhatsApp Support Button */}
-      <a
-        href="https://wa.me/917485006659?text=Hi%20TOPSUN%20Team!%20I%20need%20help%20tracking%20my%20order."
-        target="_blank"
-        rel="noopener noreferrer"
-        className="fixed bottom-6 left-4 z-40 w-12 h-12 rounded-full bg-[#25D366] text-white flex items-center justify-center shadow-lg shadow-green-500/30 hover:scale-105 active:scale-95 transition-transform"
-        aria-label="WhatsApp"
-        title="WhatsApp Support"
-      >
-        <MessageCircle size={26} className="fill-current" />
-      </a>
+      <main className="pt-24 sm:pt-28 pb-24 max-w-[900px] mx-auto px-4 sm:px-6 space-y-8">
+        <Breadcrumbs items={[{ label: 'Track Order' }]} />
 
-      <main className="pt-24 sm:pt-28 pb-20 max-w-[900px] mx-auto px-4 sm:px-6 space-y-8">
-        {/* Header Card */}
-        <section className="bg-white rounded-3xl p-6 sm:p-10 border border-gray-200/70 shadow-xs text-center">
-          <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-blue-50 text-[#009FE3] font-extrabold text-[11px] uppercase tracking-widest mb-3">
-            Real-time Logistics
+        {/* Hero / Search */}
+        <div className="bg-white rounded-3xl border border-[#e4ded5] p-8 sm:p-12 shadow-xs text-center space-y-5">
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[rgba(179,139,63,0.12)] border border-[rgba(179,139,63,0.25)] text-[#8c6820] text-[11px] font-bold tracking-wider uppercase">
+            <Truck size={12} className="text-[#b38b3f]" />
+            Real-Time Logistics
           </span>
-          <h1 className="text-3xl sm:text-4xl font-black text-gray-900 leading-tight">
+          <h1
+            className="text-3xl sm:text-4xl font-semibold text-[#121518]"
+            style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+          >
             Track Your TOPSUN Order
           </h1>
-          <p className="text-xs sm:text-sm text-gray-500 max-w-md mx-auto mt-2 leading-relaxed">
-            Enter your Order ID (e.g. TOP-2026-XXXX) or Courier Tracking AWB number below.
+          <p className="text-xs sm:text-sm text-[#606870] max-w-md mx-auto leading-relaxed">
+            Enter your Order ID (e.g. TOP-2026-XXXX) or courier AWB tracking number below.
           </p>
 
-          {/* Search Form */}
-          <form onSubmit={handleTrack} className="mt-6 max-w-md mx-auto flex flex-col sm:flex-row gap-2">
+          <form onSubmit={handleTrack} className="max-w-md mx-auto flex flex-col sm:flex-row gap-2 pt-2">
             <input
               type="text"
               value={orderNumber}
               onChange={(e) => setOrderNumber(e.target.value)}
-              placeholder="e.g. TOP-2026-8910 or Phone"
-              className="flex-1 h-12 px-4 bg-gray-50 border border-gray-300 focus:border-gray-900 rounded-2xl text-xs font-bold text-gray-900 outline-none uppercase"
+              placeholder="e.g. TOP-2026-8910 or AWB Number"
+              className="flex-1 h-12 px-4 bg-[#faf7f2] border border-[#d5cfc6] focus:border-[#121518] rounded-xl text-xs text-[#121518] outline-none uppercase font-semibold transition-colors"
             />
             <button
               type="submit"
               disabled={isSearching}
-              className="h-12 px-6 rounded-2xl bg-gray-900 hover:bg-black text-white text-xs font-bold flex items-center justify-center gap-2 shadow-md transition-all disabled:opacity-50"
+              className="h-12 px-7 rounded-xl bg-[#121518] hover:bg-black text-white text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors disabled:opacity-60 cursor-pointer shadow-xs"
             >
               <Search size={14} />
-              <span>{isSearching ? 'Searching...' : 'Track'}</span>
+              <span>{isSearching ? 'Searching…' : 'Track'}</span>
             </button>
           </form>
           {searchError && (
-            <p className="text-xs text-rose-600 font-semibold mt-2 flex items-center justify-center gap-1">
+            <p className="text-xs text-rose-600 font-semibold flex items-center justify-center gap-1">
               <AlertCircle size={13} /> {searchError}
             </p>
           )}
-        </section>
+        </div>
 
-        {/* Tracking Results Card */}
+        {/* Results Card */}
         {trackedOrder && (
-          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-200/70 shadow-xs space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-gray-100 gap-2">
+          <div className="bg-white rounded-3xl border border-[#e4ded5] p-6 sm:p-8 shadow-xs space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#e4ded5] gap-2">
               <div>
-                <span className="text-[10px] font-bold uppercase text-gray-400">Order ID</span>
-                <h3 className="text-lg font-bold text-gray-900">{trackedOrder.id}</h3>
+                <span className="text-[10px] font-bold uppercase text-[#b38b3f] tracking-wider">Order ID</span>
+                <h2 className="text-lg font-bold text-[#121518]">{trackedOrder.id}</h2>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="px-3 py-1 bg-blue-50 text-[#009FE3] text-xs font-extrabold rounded-full">
-                  🚚 {trackedOrder.status}
-                </span>
-              </div>
+              <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold rounded-full">
+                <Truck size={13} /> {trackedOrder.status}
+              </span>
             </div>
 
-            {/* Courier Info */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 bg-gray-50 p-4 rounded-2xl">
+            {/* Courier Grid */}
+            <div className="grid grid-cols-3 gap-4 bg-[#faf7f2] p-4 rounded-2xl border border-[#e4ded5]">
               <div>
                 <span className="text-[10px] text-gray-400 font-bold uppercase">Courier</span>
-                <p className="text-xs font-bold text-gray-900">{trackedOrder.courier}</p>
+                <p className="text-xs font-bold text-[#121518] mt-0.5">{trackedOrder.courier}</p>
               </div>
               <div>
                 <span className="text-[10px] text-gray-400 font-bold uppercase">AWB Number</span>
-                <p className="text-xs font-mono font-bold text-gray-900">{trackedOrder.awb}</p>
+                <p className="text-xs font-mono font-bold text-[#121518] mt-0.5">{trackedOrder.awb}</p>
               </div>
               <div>
                 <span className="text-[10px] text-gray-400 font-bold uppercase">Est. Delivery</span>
-                <p className="text-xs font-bold text-emerald-600">{trackedOrder.estimatedDelivery}</p>
+                <p className="text-xs font-bold text-emerald-700 mt-0.5">{trackedOrder.estimatedDelivery}</p>
               </div>
             </div>
 
-            {/* Timeline Stepper */}
-            <div className="space-y-4 pt-2">
-              <h4 className="text-xs font-bold uppercase text-gray-400 tracking-wider">Tracking Timeline</h4>
-              <div className="space-y-4 relative pl-6 border-l-2 border-gray-200 ml-2">
+            {/* Timeline */}
+            <div className="space-y-3 pt-2">
+              <h3 className="text-xs font-bold uppercase text-gray-400 tracking-wider">Delivery Milestones</h3>
+              <div className="relative pl-6 border-l-2 border-[#e4ded5] ml-2 space-y-5">
                 {trackedOrder.timeline.map((st: any, i: number) => (
                   <div key={i} className="relative">
                     <div
                       className={`absolute -left-[31px] top-0.5 w-4 h-4 rounded-full flex items-center justify-center ${
-                        st.done
-                          ? 'bg-emerald-600 text-white'
-                          : st.current
-                          ? 'bg-[#009FE3] ring-4 ring-blue-100'
-                          : 'bg-gray-300'
+                        st.done ? 'bg-emerald-600 text-white' : st.current ? 'bg-[#b38b3f] ring-4 ring-amber-100' : 'bg-[#e4ded5]'
                       }`}
                     >
-                      {st.done && <CheckCircle size={12} />}
+                      {st.done && <CheckCircle size={10} className="text-white" />}
                     </div>
-                    <p className={`text-xs font-bold ${st.current ? 'text-[#009FE3]' : 'text-gray-900'}`}>
+                    <p className={`text-xs font-bold ${st.current ? 'text-[#b38b3f]' : st.pending ? 'text-gray-400' : 'text-[#121518]'}`}>
                       {st.label}
                     </p>
-                    <p className="text-[11px] text-gray-400">{st.time}</p>
+                    <p className="text-[11px] text-gray-400 mt-0.5">{st.time}</p>
                   </div>
                 ))}
               </div>
@@ -167,37 +154,27 @@ export default function TrackOrder() {
           </div>
         )}
 
-        {/* Live Support Prompt */}
-        <div className="bg-white rounded-3xl p-6 border border-gray-200/70 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xs">
+        {/* WhatsApp Help */}
+        <div className="bg-white rounded-2xl border border-[#e4ded5] p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xs">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-blue-50 text-[#009FE3] flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-[rgba(179,139,63,0.12)] text-[#b38b3f] flex items-center justify-center shrink-0">
               <Package size={20} />
             </div>
             <div>
-              <h4 className="font-bold text-sm text-gray-900">Can't Find Your Tracking Number?</h4>
-              <p className="text-xs text-gray-500">Our customer support can check your parcel location in 60 seconds.</p>
+              <h4 className="font-bold text-sm text-[#121518]">Can't Find Your AWB Number?</h4>
+              <p className="text-xs text-[#606870]">Our support team can verify your parcel location in 60 seconds.</p>
             </div>
           </div>
           <a
-            href="https://wa.me/917485006659?text=Hi%20TOPSUN%20Team!%20Please%20help%20me%20track%20my%20order."
+            href="https://wa.me/917485006659?text=Hi%20TOPSUN!%20Please%20help%20me%20track%20my%20order."
             target="_blank"
             rel="noreferrer"
-            className="px-5 py-2.5 bg-[#25D366] hover:bg-[#20ba5a] text-white text-xs font-bold rounded-xl shadow-xs transition-colors whitespace-nowrap"
+            className="px-5 py-2.5 bg-[#25D366] hover:bg-green-600 text-white text-xs font-bold rounded-lg transition-colors whitespace-nowrap"
           >
             WhatsApp Support
           </a>
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="bg-[#0c0c0c] text-white py-12 px-6 text-center text-xs text-gray-400 space-y-3">
-        <p>© 2026 TOPSUN Performance Sneakers. All rights reserved.</p>
-        <div className="flex justify-center gap-4 text-gray-500 font-semibold">
-          <Link to="/about" className="hover:text-white">About Us</Link>
-          <Link to="/shop" className="hover:text-white">Shop</Link>
-          <Link to="/contact" className="hover:text-white">Contact</Link>
-        </div>
-      </footer>
     </div>
   );
 }

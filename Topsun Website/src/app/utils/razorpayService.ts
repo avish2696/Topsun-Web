@@ -5,6 +5,8 @@
 
 import { supabase } from '@/supabase';
 
+import { toValidUUID } from '@/app/utils/phoneAuthService';
+
 export interface RazorpayPaymentOptions {
   amount: number; // Amount in paise (multiply by 100 if in rupees)
   currency?: string;
@@ -227,7 +229,7 @@ export const razorpayService = {
         .from('orders')
         .insert([
           {
-            user_id: userId,
+            user_id: toValidUUID(userId),
             items: items,
             shipping_address: shippingAddress,
             total_amount: totalAmount,

@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/app/context/AuthContext';
+import { ArrowRight, Loader, AlertCircle, CheckCircle2, ChevronLeft, ShieldCheck, Sparkles, X, Lock } from 'lucide-react';
+import TopsunLogoImg from '@/imports/TOPSUN png 1.webp';
+import { SEOHead } from '@/app/components/SEOHead';
 import { motion, AnimatePresence } from 'motion/react';
-import { Phone, ArrowRight, Loader, AlertCircle, CheckCircle, ChevronLeft, ShieldCheck, Sparkles, X } from 'lucide-react';
-import TopsunLogoImg from '@/imports/TOPSUN png 1.png';
 
 const GoogleIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -14,6 +15,22 @@ const GoogleIcon = () => (
   </svg>
 );
 
+/* Carousel slides for the dark hero section */
+const slides = [
+  {
+    title: 'Begin Your Comfort Journey with TOPSUN',
+    badge: '★ Proudly Made in India',
+  },
+  {
+    title: 'Engineered for Every Step You Take',
+    badge: '★ Premium Quality Footwear',
+  },
+  {
+    title: 'Trusted by Thousands Across India',
+    badge: '★ 4.8★ Average Rating',
+  },
+];
+
 export default function SignIn() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -23,7 +40,6 @@ export default function SignIn() {
 
   const { sendPhoneOTP, verifyPhoneOTP, signInWithGoogle, isLoading } = useAuth();
 
-  // Form states
   const [step, setStep] = useState<1 | 2>(1);
   const [phone, setPhone] = useState('');
   const [fullName, setFullName] = useState('');
@@ -31,22 +47,27 @@ export default function SignIn() {
   const [timer, setTimer] = useState(0);
   const [optInUpdates, setOptInUpdates] = useState(true);
   const [error, setError] = useState('');
-  const [demoCodeNotice, setDemoCodeNotice] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [success, setSuccess] = useState(false);
   const [gLoading, setGLoading] = useState(false);
+  const [slideIdx, setSlideIdx] = useState(0);
 
   const otpRefs = useRef<Array<HTMLInputElement | null>>([]);
+
+  /* Auto-advance carousel */
+  useEffect(() => {
+    const id = setInterval(() => setSlideIdx((i) => (i + 1) % slides.length), 3200);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     if (timer <= 0) return;
     const id = setTimeout(() => setTimer((t) => t - 1), 1000);
-    return () => clearTimeout(id);
+    return () => clearInterval(id);
   }, [timer]);
 
   const handlePhoneChange = (val: string) => {
-    // Only allow numbers, max 10 digits
     const cleaned = val.replace(/\D/g, '').slice(0, 10);
     setPhone(cleaned);
     setError('');
@@ -55,7 +76,6 @@ export default function SignIn() {
   const handleSendOtp = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setError('');
-    setDemoCodeNotice(null);
 
     if (!phone || phone.length !== 10) {
       setError('Please enter a valid 10-digit mobile number');
@@ -64,12 +84,9 @@ export default function SignIn() {
 
     setSending(true);
     try {
-      const res = await sendPhoneOTP(phone);
+      await sendPhoneOTP(phone);
       setStep(2);
       setTimer(60);
-      if (res.demoCode) {
-        setDemoCodeNotice(`For instant testing, use OTP: ${res.demoCode}`);
-      }
     } catch (err: any) {
       setError(err.message || 'Failed to send OTP');
     } finally {
@@ -98,7 +115,7 @@ export default function SignIn() {
     setError('');
     const code = otp.join('');
     if (code.length !== 6) {
-      setError('Please enter the full 6-digit OTP');
+      setError('Please enter the complete 6-digit code');
       return;
     }
 
@@ -110,7 +127,7 @@ export default function SignIn() {
         navigate(from, { replace: true });
       }, 1000);
     } catch (err: any) {
-      setError(err.message || 'Invalid OTP. Please try again.');
+      setError(err.message || 'Invalid verification code. Please try again.');
     } finally {
       setVerifying(false);
     }
@@ -129,85 +146,133 @@ export default function SignIn() {
   };
 
   return (
-    <div className="min-h-screen bg-[#111315]/80 backdrop-blur-md flex items-center justify-center p-4 py-8" style={{ fontFamily: "'Inter', sans-serif" }}>
-      {/* Modal / Card Container matching Screenshot 2 */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 15 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="w-full max-w-[420px] bg-[#1a1c1e] text-white rounded-3xl shadow-2xl overflow-hidden border border-gray-800 relative flex flex-col"
-      >
-        {/* Close Button */}
-        <button
-          onClick={() => navigate(from || '/shop')}
-          className="absolute top-4 right-4 z-20 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white flex items-center justify-center transition-colors"
-          aria-label="Close"
-        >
-          <X size={18} />
-        </button>
+    <div
+      className="min-h-screen bg-[#f0ece6] flex items-center justify-center p-4 py-10"
+      style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+    >
+      <SEOHead
+        title="Sign In / Register | TOPSUN Footwear"
+        description="Login to your TOPSUN account to track orders, manage addresses, and unlock exclusive footwear releases."
+        noIndex={true}
+      />
 
-        {/* Top Dark Header Card matching Screenshot 2 */}
-        <div className="p-6 pt-7 text-center relative flex flex-col items-center border-b border-gray-800/80 bg-gradient-to-b from-[#1a1c1e] to-[#22252a]">
-          {/* TOPSUN Logo */}
-          <div className="flex items-center gap-2 mb-2">
-            <img src={TopsunLogoImg} alt="TOPSUN" className="h-9 object-contain brightness-0 invert" />
-            <span className="text-[10px] tracking-widest text-[#009FE3] font-extrabold uppercase border border-[#009FE3]/40 px-1.5 py-0.5 rounded">
-              FAST PASS
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="w-full max-w-[420px] rounded-3xl overflow-hidden shadow-2xl"
+      >
+        {/* ── DARK HERO TOP SECTION ── */}
+        <div className="relative bg-[#1c1c1c] px-6 pt-7 pb-8 overflow-hidden">
+          {/* subtle dot texture */}
+          <div
+            className="absolute inset-0 opacity-[0.04] pointer-events-none"
+            style={{
+              backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)',
+              backgroundSize: '14px 14px',
+            }}
+          />
+
+          {/* Close button */}
+          <button
+            onClick={() => {
+              if (window.history.length > 1) navigate(-1);
+              else navigate(from || '/shop');
+            }}
+            className="absolute top-4 right-4 z-20 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer"
+            aria-label="Close"
+          >
+            <X size={14} />
+          </button>
+
+          {/* Logo + FAST PASS badge row */}
+          <div className="flex items-center justify-center gap-3 mb-5 relative z-10">
+            <img src={TopsunLogoImg} alt="TOPSUN" className="h-7 object-contain brightness-0 invert" />
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[#f5c842] border border-[#f5c842]/60 rounded px-2 py-0.5">
+              Fast Pass
             </span>
           </div>
 
-          <h2 className="text-[18px] font-extrabold text-white tracking-tight leading-snug mt-1">
-            Begin Your Comfort Journey with TOPSUN
-          </h2>
-
-          {/* Proudly Made in India Pill */}
-          <div className="mt-3.5 inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white/10 border border-white/10 text-[12px] font-semibold text-gray-200 shadow-inner">
-            <span className="text-amber-400">★</span>
-            <span>Proudly Made in India</span>
+          {/* Animated heading carousel */}
+          <div className="relative z-10 text-center min-h-[64px] flex items-center justify-center">
+            <AnimatePresence mode="wait">
+              <motion.h1
+                key={slideIdx}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.35 }}
+                className="text-[20px] font-extrabold text-white leading-snug tracking-tight text-center"
+              >
+                {slides[slideIdx].title}
+              </motion.h1>
+            </AnimatePresence>
           </div>
 
-          {/* Dot Indicators */}
-          <div className="flex items-center gap-1.5 mt-3">
-            <span className="w-1.5 h-1.5 rounded-full bg-white" />
-            <span className="w-1.5 h-1.5 rounded-full bg-white/40" />
-            <span className="w-1.5 h-1.5 rounded-full bg-white/40" />
+          {/* Badge */}
+          <div className="relative z-10 mt-4 flex justify-center">
+            <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#2a2a2a] text-white text-[11px] font-semibold">
+              <AnimatePresence mode="wait">
+                <motion.span
+                  key={slideIdx}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.25 }}
+                >
+                  {slides[slideIdx].badge}
+                </motion.span>
+              </AnimatePresence>
+            </span>
+          </div>
+
+          {/* Carousel dots */}
+          <div className="relative z-10 mt-4 flex justify-center gap-1.5">
+            {slides.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setSlideIdx(i)}
+                className={`rounded-full transition-all duration-300 cursor-pointer ${
+                  i === slideIdx ? 'w-5 h-1.5 bg-white' : 'w-1.5 h-1.5 bg-white/35'
+                }`}
+              />
+            ))}
           </div>
         </div>
 
-        {/* Form Body - Clean White Container matching Screenshot 2 */}
-        <div className="bg-white text-gray-900 p-6 sm:p-7 flex-1 rounded-b-3xl">
+        {/* ── WHITE FORM BOTTOM SECTION ── */}
+        <div className="bg-white px-6 pt-6 pb-7">
           {success ? (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="text-center py-8"
-            >
-              <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle size={36} />
+            <div className="text-center py-10 space-y-3">
+              <div className="w-16 h-16 bg-green-50 text-green-600 rounded-full flex items-center justify-center mx-auto border border-green-200">
+                <CheckCircle2 size={34} />
               </div>
-              <h3 className="text-2xl font-bold text-gray-900">Welcome to TOPSUN!</h3>
-              <p className="text-sm text-gray-500 mt-1">Successfully signed in. Redirecting…</p>
-            </motion.div>
+              <h3 className="text-xl font-bold text-[#121518]">Welcome back!</h3>
+              <p className="text-sm text-gray-500">Signed in successfully. Redirecting…</p>
+            </div>
           ) : step === 1 ? (
-            /* STEP 1: Enter Mobile Number */
+            /* ── STEP 1: Phone Number ── */
             <form onSubmit={handleSendOtp} className="space-y-4">
+              {/* Heading */}
               <div className="text-center mb-4">
-                <h3 className="text-[20px] font-bold text-gray-900 tracking-tight">Step into Comfort</h3>
-                <p className="text-[13px] text-gray-500 mt-0.5">Enter your mobile number to Login/Signup</p>
+                <h2 className="text-[22px] font-extrabold text-[#121518] leading-tight">
+                  Step into <span className="text-[#e07b26]">Comfort</span>
+                </h2>
+                <p className="text-[13px] text-gray-500 mt-1">
+                  Enter your mobile number to Login/Signup
+                </p>
               </div>
 
-              {/* Mobile Number Input with Indian Flag */}
+              {/* Phone input */}
               <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-600 mb-1.5">
+                <label className="block text-[11px] font-extrabold uppercase tracking-widest text-[#121518] mb-2">
                   Mobile Number
                 </label>
-                <div className="flex items-center border-2 border-gray-200 focus-within:border-gray-900 rounded-2xl overflow-hidden transition-colors h-[54px] bg-gray-50/50">
-                  {/* Flag and Prefix */}
-                  <div className="flex items-center gap-1.5 px-3.5 bg-gray-100/80 border-r border-gray-200 text-[15px] font-bold text-gray-800 select-none h-full">
-                    <span className="text-lg">🇮🇳</span>
-                    <span>+91</span>
+                <div className="flex items-stretch border-2 border-[#1a1a1a] focus-within:border-[#e07b26] rounded-xl overflow-hidden transition-colors bg-white" style={{ height: '52px' }}>
+                  <div className="flex items-center gap-1.5 px-3.5 border-r border-gray-200 text-sm font-bold text-[#121518] select-none whitespace-nowrap">
+                    <span>🇮🇳</span>
+                    <span>IN +91</span>
                   </div>
-                  {/* Input */}
                   <input
                     type="tel"
                     inputMode="numeric"
@@ -215,82 +280,95 @@ export default function SignIn() {
                     value={phone}
                     onChange={(e) => handlePhoneChange(e.target.value)}
                     placeholder="Enter Mobile Number"
-                    className="flex-1 px-3.5 text-[16px] font-semibold text-gray-900 bg-transparent outline-none tracking-wider placeholder:text-gray-400 placeholder:font-normal"
+                    className="flex-1 px-3.5 text-sm font-medium text-[#121518] bg-transparent outline-none placeholder:text-gray-400"
                     maxLength={10}
                   />
                 </div>
                 {error && (
-                  <p className="text-[12px] text-rose-600 font-medium mt-1.5 flex items-center gap-1">
+                  <p className="text-xs text-rose-600 font-medium mt-1.5 flex items-center gap-1">
                     <AlertCircle size={13} /> {error}
                   </p>
                 )}
               </div>
 
-              {/* Updates Opt-in Checkbox */}
-              <label className="flex items-start gap-2.5 cursor-pointer pt-1 select-none">
+              {/* Updates checkbox */}
+              <label className="flex items-center gap-2.5 cursor-pointer select-none">
                 <input
                   type="checkbox"
                   checked={optInUpdates}
                   onChange={(e) => setOptInUpdates(e.target.checked)}
-                  className="mt-0.5 w-4 h-4 rounded border-gray-300 text-gray-900 focus:ring-0 cursor-pointer"
+                  className="w-4 h-4 rounded cursor-pointer accent-[#e07b26]"
                 />
-                <span className="text-[12px] text-gray-600 font-medium leading-snug">
+                <span className="text-[12px] text-gray-500 leading-snug">
                   Get updates, offers via RCS/WA/SMS
                 </span>
               </label>
 
-              {/* Submit Button */}
+              {/* Submit button */}
               <button
                 type="submit"
                 disabled={sending || isLoading || phone.length < 10}
-                className="w-full h-[52px] rounded-2xl bg-[#1c1d1f] hover:bg-black text-white font-bold text-[15px] flex items-center justify-center gap-2 transition-all active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                className="w-full h-12 rounded-xl bg-[#5a5a5a] hover:bg-[#3a3a3a] text-white font-bold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md cursor-pointer"
               >
                 {sending ? (
-                  <Loader size={18} className="animate-spin" />
+                  <Loader size={17} className="animate-spin" />
                 ) : (
                   <>
-                    Submit <ArrowRight size={16} />
+                    <span>Submit</span>
+                    <ArrowRight size={15} />
                   </>
                 )}
               </button>
 
-              {/* Divider */}
-              <div className="flex items-center gap-3 py-1">
+              {/* OR divider */}
+              <div className="flex items-center gap-3">
                 <div className="flex-1 h-px bg-gray-200" />
-                <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">OR</span>
+                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">OR</span>
                 <div className="flex-1 h-px bg-gray-200" />
               </div>
 
-              {/* Google Sign In */}
+              {/* Google button */}
               <button
                 type="button"
                 onClick={handleGoogle}
                 disabled={gLoading || isLoading}
-                className="w-full h-[48px] rounded-2xl border-2 border-gray-200 hover:border-gray-300 bg-white text-gray-700 font-semibold text-[13px] flex items-center justify-center gap-2.5 transition-colors"
+                className="w-full h-12 rounded-xl border border-gray-200 hover:border-gray-400 hover:bg-gray-50 bg-white text-[#121518] font-semibold text-sm flex items-center justify-center gap-2.5 transition-all cursor-pointer"
               >
-                {gLoading ? <Loader size={16} className="animate-spin" /> : <><GoogleIcon /> Continue with Google</>}
+                {gLoading ? (
+                  <Loader size={17} className="animate-spin" />
+                ) : (
+                  <>
+                    <GoogleIcon />
+                    <span>Continue with Google</span>
+                  </>
+                )}
               </button>
+
+              {/* Privacy note */}
+              <p className="text-center text-[11px] text-gray-400 leading-snug pt-1">
+                <ShieldCheck size={12} className="inline mb-0.5 text-gray-400" />{' '}
+                I accept that I have read &amp; understood TOPSUN's{' '}
+                <a href="/privacy-policy" className="underline text-gray-600 hover:text-black">Privacy Policy</a>
+                {' '}and{' '}
+                <a href="/terms-of-service" className="underline text-gray-600 hover:text-black">T&amp;Cs</a>
+              </p>
             </form>
           ) : (
-            /* STEP 2: Verify OTP */
+            /* ── STEP 2: OTP ── */
             <form onSubmit={handleVerifyOtp} className="space-y-4">
               <div className="text-center mb-4">
-                <h3 className="text-[20px] font-bold text-gray-900 tracking-tight">Enter OTP Code</h3>
-                <p className="text-[13px] text-gray-500 mt-0.5">
-                  Code sent to <strong className="text-gray-900">+91 {phone}</strong>
+                <h2 className="text-[22px] font-extrabold text-[#121518]">
+                  Verify Your <span className="text-[#e07b26]">Phone</span>
+                </h2>
+                <p className="text-[13px] text-gray-500 mt-1">
+                  Enter the 6-digit code sent to +91 {phone}
                 </p>
               </div>
 
-              {/* Demo OTP Notice if SMS provider is pending */}
-              {demoCodeNotice && (
-                <div className="p-2.5 bg-blue-50 border border-blue-200 rounded-xl text-[12px] text-blue-800 font-semibold text-center flex items-center justify-center gap-1.5">
-                  <Sparkles size={14} className="text-blue-600" />
-                  <span>{demoCodeNotice}</span>
-                </div>
-              )}
-
-              {/* 6 Digit OTP Inputs */}
               <div>
+                <label className="block text-[11px] font-extrabold uppercase tracking-widest text-[#121518] mb-2 text-center">
+                  Enter 6-Digit Code
+                </label>
                 <div className="flex gap-2 justify-center">
                   {otp.map((digit, idx) => (
                     <input
@@ -302,78 +380,62 @@ export default function SignIn() {
                       value={digit}
                       onChange={(e) => handleOtpChange(idx, e.target.value)}
                       onKeyDown={(e) => handleOtpKeyDown(idx, e)}
-                      className="w-11 h-13 text-center text-xl font-bold bg-gray-50 border-2 border-gray-200 focus:border-gray-900 rounded-xl outline-none transition-colors"
+                      className={`w-11 h-12 text-center text-lg font-bold bg-white border-2 rounded-xl outline-none transition-all ${
+                        digit ? 'border-[#1a1a1a]' : 'border-gray-200 focus:border-[#e07b26]'
+                      } text-[#121518]`}
                     />
                   ))}
                 </div>
                 {error && (
-                  <p className="text-[12px] text-rose-600 font-medium text-center mt-2 flex items-center justify-center gap-1">
+                  <p className="text-xs text-rose-600 font-medium text-center mt-2 flex items-center justify-center gap-1">
                     <AlertCircle size={13} /> {error}
                   </p>
                 )}
               </div>
 
-              {/* Resend Timer */}
-              <div className="text-center text-[12px] text-gray-500">
+              <div className="text-center text-xs text-gray-500">
                 {timer > 0 ? (
-                  <span>Resend OTP in <strong className="text-gray-900">{timer}s</strong></span>
+                  <span>Resend code in <strong className="text-[#121518] font-mono">{String(timer).padStart(2, '0')}s</strong></span>
                 ) : (
                   <button
                     type="button"
                     onClick={() => handleSendOtp()}
-                    className="text-blue-600 font-bold underline hover:text-blue-800"
+                    className="text-[#e07b26] font-bold underline hover:text-[#c06015] cursor-pointer"
                   >
-                    Resend OTP
+                    Resend Code
                   </button>
                 )}
               </div>
 
-              {/* Verify Button */}
               <button
                 type="submit"
                 disabled={verifying || otp.join('').length < 6}
-                className="w-full h-[52px] rounded-2xl bg-[#1c1d1f] hover:bg-black text-white font-bold text-[15px] flex items-center justify-center gap-2 transition-all active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                className="w-full h-12 rounded-xl bg-[#5a5a5a] hover:bg-[#3a3a3a] text-white font-bold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md cursor-pointer"
               >
                 {verifying ? (
-                  <Loader size={18} className="animate-spin" />
+                  <Loader size={17} className="animate-spin" />
                 ) : (
                   <>
-                    Verify & Continue <ArrowRight size={16} />
+                    <span>Verify &amp; Continue</span>
+                    <ArrowRight size={15} />
                   </>
                 )}
               </button>
 
-              {/* Change Phone Number */}
               <button
                 type="button"
-                onClick={() => {
-                  setStep(1);
-                  setOtp(['', '', '', '', '', '']);
-                  setError('');
-                }}
-                className="w-full text-center text-[12px] text-gray-500 hover:text-gray-900 flex items-center justify-center gap-1 font-semibold"
+                onClick={() => { setStep(1); setOtp(['', '', '', '', '', '']); setError(''); }}
+                className="w-full text-center text-xs text-gray-500 hover:text-[#121518] flex items-center justify-center gap-1 font-semibold cursor-pointer pt-1"
               >
-                <ChevronLeft size={14} /> Change mobile number
+                <ChevronLeft size={14} /> Change phone number
               </button>
+
+              <p className="text-center text-[11px] text-gray-400 leading-snug pt-1">
+                <Lock size={12} className="inline mb-0.5 text-gray-400" />{' '}
+                256-Bit Encrypted &amp; Secure
+              </p>
             </form>
           )}
-
-          {/* Legal / Gokwik-style Footer Disclaimer matching Screenshot 2 */}
-          <div className="mt-5 pt-4 border-t border-gray-100 text-center flex flex-col items-center gap-1 text-[11px] text-gray-400">
-            <div className="flex items-center gap-1">
-              <ShieldCheck size={13} className="text-gray-400" />
-              <span>I accept that I have read & understood TOPSUN's</span>
-            </div>
-            <div>
-              <span onClick={() => navigate('/privacy-policy')} className="text-gray-700 underline cursor-pointer hover:text-black">
-                Privacy Policy
-              </span>
-              {' '}and{' '}
-              <span onClick={() => navigate('/terms-of-service')} className="text-gray-700 underline cursor-pointer hover:text-black">
-                T&Cs
-              </span>.
-            </div>
-          </div>
         </div>
       </motion.div>
     </div>

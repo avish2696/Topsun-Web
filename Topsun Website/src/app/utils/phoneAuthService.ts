@@ -13,6 +13,16 @@ export interface PhoneAuthResponse {
   error: string | null;
 }
 
+export function toValidUUID(id?: string): string {
+  if (!id) return '00000000-0000-4000-a000-000000000000';
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (uuidRegex.test(id)) return id;
+
+  const digits = id.replace(/\D/g, '').slice(-12);
+  const padded = digits.padStart(12, '0');
+  return `00000000-0000-4000-a000-${padded}`;
+}
+
 // SessionStorage key generator
 const otpStoreKey = (phone: string) => `topsun_otp_${phone}`;
 
@@ -30,11 +40,10 @@ class PhoneAuthService {
   /**
    * Send Phone OTP via APITxT / Supabase with automatic fallback
    */
-  async sendPhoneOTP(phone: string): Promise<{ success: boolean; demoCode?: string; message?: string }> {
+  async sendPhoneOTP(phone: string): Promise<{ success: boolean; message?: string }> {
     const { raw10, e164 } = this.formatPhone(phone);
-    console.log('📱 Initiating OTP dispatch for mobile:', e164);
 
-    const apiKey = import.meta.env.VITE_APITXT_API_KEY || import.meta.env.APITXT_API_KEY;
+    const apiKey = import.meta.env.VITE_APITXT_API_KEY;
 
     // Generate random 6-digit OTP code
     const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -51,12 +60,10 @@ class PhoneAuthService {
     // 1. Send via APITxT API
     if (apiKey && apiKey !== 'your_apitxt_api_key_here') {
       try {
-        console.log('🚀 Calling APITxT sendOTP API...');
-
-        // Try proxy first (to avoid browser CORS issues), then fallback to direct endpoint
         const endpoints = [
-          '/api/apitxt/api/sendOTP',
+          '/api/send-otp.php',
           'https://apitxt.com/api/sendOTP',
+          '/api/apitxt/api/sendOTP',
         ];
 
         let sentSuccessfully = false;
@@ -67,55 +74,38 @@ class PhoneAuthService {
               authkey: apiKey,
               mobile: `91${raw10}`,
               otp: generatedOtp,
-              message: `Your TOPSUN verification code is ${generatedOtp}. Valid for 10 minutes.`,
-              channel: 'sms',
             });
 
             const response = await fetch(url, {
               method: 'POST',
-              headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-              },
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
               body: formData,
             });
 
-            if (response.ok) {
-              const resJson = await response.json().catch(() => null);
-              console.log('✅ APITxT OTP API Response:', resJson);
+            const resJson = await response.json().catch(() => null);
+
+            if (response.ok && resJson && resJson.status === 'success') {
               sentSuccessfully = true;
               break;
             }
-          } catch (e: any) {
-            console.warn(`Endpoint ${url} failed:`, e.message);
-          }
+          } catch {}
         }
 
         if (sentSuccessfully) {
           return { success: true, message: 'OTP sent successfully to your mobile number via SMS!' };
         }
-      } catch (apiErr: any) {
-        console.warn('⚠️ APITxT dispatch error:', apiErr.message);
-      }
+      } catch {}
     }
 
     // 2. Supabase Auth fallback
     try {
-      const { error: supabaseError } = await supabase.auth.signInWithOtp({
-        phone: e164,
-      });
-
+      const { error: supabaseError } = await supabase.auth.signInWithOtp({ phone: e164 });
       if (!supabaseError) {
         return { success: true, message: 'OTP sent via Supabase SMS service' };
       }
     } catch {}
 
-    // 3. Fallback code for instant testing
-    console.log(`[TESTING / DEMO OTP] 6-digit code: ${generatedOtp} (or 123456)`);
-    return {
-      success: true,
-      demoCode: generatedOtp,
-      message: `OTP: ${generatedOtp} (or use 123456)`,
-    };
+    return { success: false, message: 'Failed to send OTP. Please check your phone number and try again.' };
   }
 
   /**
@@ -124,15 +114,14 @@ class PhoneAuthService {
   async verifyPhoneOTP(phone: string, token: string, fullName?: string): Promise<PhoneAuthResponse> {
     const { raw10, e164 } = this.formatPhone(phone);
     const trimmedToken = token.trim();
-    console.log('🔐 Verifying OTP for phone:', e164);
 
-    // 1. Verify against APITxT generated session OTP
+    // 1. Verify against session OTP (from APITxT flow)
     try {
       const storedData = sessionStorage.getItem(otpStoreKey(raw10));
       if (storedData) {
         const { otp, expiresAt } = JSON.parse(storedData);
-        if (Date.now() <= expiresAt && (trimmedToken === otp || trimmedToken === '123456')) {
-          const userId = `usr_${raw10}`;
+        if (Date.now() <= expiresAt && trimmedToken === otp) {
+          const userId = toValidUUID(raw10);
           const user: User = {
             id: userId,
             phone: e164,
@@ -168,28 +157,23 @@ class PhoneAuthService {
       }
     } catch {}
 
-    // 3. Global test code
-    if (trimmedToken === '123456') {
-      const user: User = {
-        id: `usr_${raw10}`,
-        phone: e164,
-        fullName: fullName || 'TOPSUN Customer',
-        provider: 'phone',
-      };
-      localStorage.setItem('auth_phone_user', JSON.stringify(user));
-      return { user, error: null };
-    }
-
     return { user: null, error: 'Invalid or expired 6-digit OTP code. Please try again.' };
   }
 
   /**
-   * Get stored phone user
+   * Get stored phone user and auto-migrate legacy non-UUID IDs
    */
   getCurrentUser(): User | null {
     try {
       const stored = localStorage.getItem('auth_phone_user');
-      if (stored) return JSON.parse(stored);
+      if (stored) {
+        const user = JSON.parse(stored);
+        if (user && user.id) {
+          user.id = toValidUUID(user.id);
+          localStorage.setItem('auth_phone_user', JSON.stringify(user));
+        }
+        return user;
+      }
       return null;
     } catch {
       return null;

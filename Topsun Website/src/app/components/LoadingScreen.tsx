@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import TopsunLogoImg from '@/imports/TOPSUN png 1.png';
+import TopsunLogoImg from '@/imports/TOPSUN png 1.webp';
 
 interface LoadingScreenProps {
   fullScreen?: boolean;

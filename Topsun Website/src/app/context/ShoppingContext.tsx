@@ -41,6 +41,9 @@ export interface Order {
 interface ShoppingContextType {
   cart: CartItem[];
   orders: Order[];
+  isCartDrawerOpen: boolean;
+  openCartDrawer: () => void;
+  closeCartDrawer: () => void;
   addToCart: (item: CartItem) => Promise<void>;
   removeFromCart: (id: number, size: number | string) => Promise<void>;
   updateCartItem: (id: number, size: number | string, quantity: number) => Promise<void>;
@@ -146,6 +149,16 @@ export function ShoppingProvider({ children }: { children: ReactNode }) {
     setCart(stored);
   }, [user?.id]);
 
+  const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
+
+  const openCartDrawer = useCallback(() => {
+    setIsCartDrawerOpen(true);
+  }, []);
+
+  const closeCartDrawer = useCallback(() => {
+    setIsCartDrawerOpen(false);
+  }, []);
+
   const addToCart = useCallback(async (item: CartItem) => {
     setCart(prev => {
       const existing = prev.find(i => i.id === item.id && i.size === item.size);
@@ -158,6 +171,7 @@ export function ShoppingProvider({ children }: { children: ReactNode }) {
         : [...prev, item];
       return updated;
     });
+    setIsCartDrawerOpen(true);
     toast.success('Added to cart', { description: `${item.name} (${item.size})` });
   }, []);
 
@@ -202,6 +216,9 @@ export function ShoppingProvider({ children }: { children: ReactNode }) {
       value={{
         cart,
         orders,
+        isCartDrawerOpen,
+        openCartDrawer,
+        closeCartDrawer,
         addToCart,
         removeFromCart,
         updateCartItem,

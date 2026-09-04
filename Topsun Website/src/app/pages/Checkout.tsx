@@ -15,6 +15,7 @@ import { supabase } from '@/supabase';
 import { pushOrderToShipmozo } from '@/app/utils/shipmozoService';
 import { generateShortOrderId, logOrderIdValidation } from '@/app/utils/orderIdGenerator';
 import { calculatePrice, PaymentMethod as PricingPaymentMethod } from '@/app/utils/pricingCalculator';
+import { toValidUUID } from '@/app/utils/phoneAuthService';
 
 interface FormErrors {
   fullName?: string;
@@ -77,6 +78,9 @@ export const calculateShoePackageDetails = (totalQuantity: number) => {
   };
 };
 
+import { SEOHead } from '@/app/components/SEOHead';
+import { Breadcrumbs } from '@/app/components/Breadcrumbs';
+
 // Step Indicator — 3 steps: Cart → Summary → Payment
 function StepIndicator({ step }: { step: CheckoutStep }) {
   const steps = [
@@ -88,7 +92,7 @@ function StepIndicator({ step }: { step: CheckoutStep }) {
   const activeIndex = step === 'shipping' ? 0 : step === 'summary' ? 1 : 2;
 
   return (
-    <div className="flex items-center justify-center gap-0 py-3">
+    <div className="flex items-center justify-center gap-0 py-3" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       {steps.map((s, i) => {
         const isCompleted = i < activeIndex;
         const isActive = i === activeIndex;
@@ -97,22 +101,22 @@ function StepIndicator({ step }: { step: CheckoutStep }) {
             <div className="flex flex-col items-center gap-1">
               <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-300 ${
                 isCompleted
-                  ? 'bg-[#009FE3] text-white'
+                  ? 'bg-[#b38b3f] text-white'
                   : isActive
-                  ? 'bg-gray-900 text-white ring-4 ring-blue-100'
-                  : 'bg-gray-200 text-gray-400'
+                  ? 'bg-[#121518] text-white ring-4 ring-[rgba(179,139,63,0.2)]'
+                  : 'bg-[#faf7f2] text-gray-400 border border-[#e4ded5]'
               }`}>
                 {isCompleted ? <Check size={14} /> : i + 1}
               </div>
               <span className={`text-[10px] font-bold uppercase tracking-wider ${
-                isActive ? 'text-gray-900' : isCompleted ? 'text-[#009FE3]' : 'text-gray-400'
+                isActive ? 'text-[#121518]' : isCompleted ? 'text-[#b38b3f]' : 'text-gray-400'
               }`}>
                 {s.label}
               </span>
             </div>
             {i < steps.length - 1 && (
               <div className={`h-[2px] w-12 mx-1 mb-3 rounded-full transition-colors duration-300 ${
-                i < activeIndex ? 'bg-[#009FE3]' : 'bg-gray-200'
+                i < activeIndex ? 'bg-[#b38b3f]' : 'bg-[#e4ded5]'
               }`} />
             )}
           </React.Fragment>
@@ -138,28 +142,28 @@ function AddressCard({
       onClick={onSelect}
       className={`p-4 border-2 rounded-2xl cursor-pointer transition-all flex items-start gap-3 ${
         selected
-          ? 'border-[#009FE3] bg-blue-50/30 shadow-xs'
-          : 'border-gray-200/80 hover:border-gray-300 bg-white'
+          ? 'border-[#b38b3f] bg-[rgba(179,139,63,0.06)] shadow-xs'
+          : 'border-[#e4ded5] hover:border-gray-400 bg-white'
       }`}
     >
       <div className="mt-0.5 flex-shrink-0">
         <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
-          selected ? 'border-[#009FE3]' : 'border-gray-300'
+          selected ? 'border-[#b38b3f]' : 'border-[#e4ded5]'
         }`}>
-          {selected && <div className="w-2.5 h-2.5 rounded-full bg-[#009FE3]" />}
+          {selected && <div className="w-2.5 h-2.5 rounded-full bg-[#b38b3f]" />}
         </div>
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <p className="font-bold text-sm text-gray-900">{address.full_name}</p>
+          <p className="font-bold text-sm text-[#121518]">{address.full_name}</p>
           {address.is_default && (
-            <span className="text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 bg-blue-100 text-[#009FE3] rounded-full">
+            <span className="text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 bg-[rgba(179,139,63,0.12)] text-[#8c6820] rounded-full border border-[rgba(179,139,63,0.2)]">
               Default
             </span>
           )}
         </div>
-        <p className="text-xs font-semibold text-gray-500 mt-0.5">{address.phone}</p>
-        <p className="text-xs text-gray-600 mt-1 leading-relaxed">
+        <p className="text-xs font-semibold text-[#606870] mt-0.5">{address.phone}</p>
+        <p className="text-xs text-gray-700 mt-1 leading-relaxed">
           {address.address_line1}{address.address_line2 ? `, ${address.address_line2}` : ''},{' '}
           {address.city}, {address.state} – {address.postal_code}
         </p>
@@ -383,7 +387,7 @@ function CheckoutContent() {
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
-        user_id: user.id,
+        user_id: toValidUUID(user.id),
         order_number: orderNumber,
         total_amount: getDiscountedTotal(methodToUse) * 100,
         payment_status: methodToUse === 'cod' ? 'pending' : (razorpayPaymentId ? 'completed' : 'pending'),
@@ -787,10 +791,12 @@ function CheckoutContent() {
   const activeAddress = getActiveAddress();
 
   return (
-    <div
-      className="min-h-screen bg-[#fafafa] flex flex-col"
-      style={{ fontFamily: "'Inter', sans-serif" }}
-    >
+    <div className="min-h-screen bg-[#faf7f2] text-[#121518] flex flex-col" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+      <SEOHead
+        title="Secure Checkout | TOPSUN Footwear"
+        description="Complete your order securely with TOPSUN. Fast shipping, 256-bit SSL encryption, and multiple payment options including UPI, Cards, and Cash on Delivery."
+        noIndex={true}
+      />
       <Header
         cartCount={getCartItemCount()}
         onCartClick={() => navigate('/cart')}

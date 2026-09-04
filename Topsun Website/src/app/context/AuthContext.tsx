@@ -18,7 +18,7 @@ interface AuthContextType {
   error: string | null;
 
   // Phone OTP methods (Primary)
-  sendPhoneOTP: (phone: string) => Promise<{ success: boolean; demoCode?: string }>;
+  sendPhoneOTP: (phone: string) => Promise<{ success: boolean; message?: string }>;
   verifyPhoneOTP: (phone: string, otp: string, fullName?: string) => Promise<void>;
 
   // Email / Google methods (Optional)

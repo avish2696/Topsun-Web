@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Calendar, ArrowRight, ShoppingBag, Loader, AlertCircle, ShieldCheck } from 'lucide-react';
+import { ArrowRight, ShoppingBag, Loader, AlertCircle, ShieldCheck, Truck } from 'lucide-react';
 import { useAuth } from '@/app/context/AuthContext';
 import { supabase } from '@/supabase';
+import { SEOHead } from '@/app/components/SEOHead';
+import { toValidUUID } from '@/app/utils/phoneAuthService';
 
-// Dynamically loads canvas-confetti from CDN
 const loadConfetti = (): Promise<any> => {
   return new Promise((resolve) => {
     if ((window as any).confetti) return resolve((window as any).confetti);
@@ -17,7 +18,6 @@ const loadConfetti = (): Promise<any> => {
   });
 };
 
-
 export default function OrderSuccess() {
   const { orderId } = useParams();
   const { user } = useAuth();
@@ -26,9 +26,7 @@ export default function OrderSuccess() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
+  useEffect(() => { window.scrollTo(0, 0); }, []);
 
   useEffect(() => {
     if (!orderId || !user) {
@@ -40,20 +38,14 @@ export default function OrderSuccess() {
     const fetchOrder = async () => {
       try {
         const { data, error: fetchError } = await supabase
-          .from('orders')
-          .select('*')
-          .eq('id', orderId)
-          .eq('user_id', user.id)
-          .single();
-
+          .from('orders').select('*').eq('id', orderId).eq('user_id', toValidUUID(user.id)).single();
         if (fetchError || !data) {
           setError('Order not found.');
         } else {
           setOrder(data);
-          // Trigger confetti!
           triggerConfetti();
         }
-      } catch (err: any) {
+      } catch {
         setError('Failed to fetch order details.');
       } finally {
         setLoading(false);
@@ -67,12 +59,10 @@ export default function OrderSuccess() {
     try {
       const confetti = await loadConfetti();
       if (!confetti) return;
-
-      const duration = 2000;
+      const duration = 2200;
       const animationEnd = Date.now() + duration;
-      const defaults = { startVelocity: 25, spread: 360, ticks: 50, zIndex: 1000 };
+      const defaults = { startVelocity: 25, spread: 360, ticks: 50, zIndex: 1000, colors: ['#b38b3f', '#dfc38a', '#121518', '#ffffff', '#f5f0e8'] };
       const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
-
       const interval: any = setInterval(() => {
         const timeLeft = animationEnd - Date.now();
         if (timeLeft <= 0) return clearInterval(interval);
@@ -80,17 +70,15 @@ export default function OrderSuccess() {
         confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
         confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
       }, 250);
-    } catch (e) {
-      console.warn('Confetti animation failed:', e);
-    }
+    } catch {}
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#f1f3f6] flex justify-center items-center font-sans">
-        <div className="w-full max-w-[480px] min-h-screen bg-[#f1f3f6] flex flex-col justify-center items-center p-6 text-center">
-          <Loader size={40} className="text-blue-500 animate-spin" />
-          <p className="text-gray-500 font-medium text-sm mt-4">Confirming order details...</p>
+      <div className="min-h-screen bg-[#faf7f2] flex justify-center items-center" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+        <div className="flex flex-col items-center gap-3">
+          <Loader size={32} className="text-[#b38b3f] animate-spin" />
+          <p className="text-[#606870] text-xs font-medium">Confirming your order…</p>
         </div>
       </div>
     );
@@ -98,14 +86,12 @@ export default function OrderSuccess() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-[#f1f3f6] flex justify-center items-center font-sans">
-        <div className="w-full max-w-[480px] min-h-screen bg-[#f1f3f6] flex flex-col p-4 justify-center items-center text-center">
-          <div className="bg-red-50 border border-red-200 p-6 rounded-2xl mb-6 w-full">
-            <AlertCircle className="text-red-500 mx-auto mb-3" size={36} />
-            <h2 className="text-[17px] font-bold text-red-950 mb-1">Order Details Error</h2>
-            <p className="text-red-700 text-xs">{error}</p>
-          </div>
-          <Link to="/" className="w-full py-3.5 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-xl active:scale-98 transition-all text-[14px]">
+      <div className="min-h-screen bg-[#faf7f2] flex justify-center items-center p-6" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+        <div className="bg-white border border-[#e4ded5] rounded-2xl p-8 max-w-sm w-full text-center space-y-4 shadow-xs">
+          <AlertCircle size={36} className="text-red-500 mx-auto" />
+          <h2 className="text-lg font-bold text-[#121518]">Order Error</h2>
+          <p className="text-xs text-[#606870]">{error}</p>
+          <Link to="/" className="block px-6 py-3 bg-[#121518] text-white rounded-lg text-xs font-bold hover:bg-black transition-colors">
             Back to Home
           </Link>
         </div>
@@ -115,99 +101,103 @@ export default function OrderSuccess() {
 
   const finalAmount = order ? order.total_amount / 100 : 0;
   const deliveryDate = order ? new Date(order.created_at) : new Date();
-  deliveryDate.setDate(deliveryDate.getDate() + 10);
-  const formattedDeliveryDate = deliveryDate.toLocaleDateString('en-IN', {
-    weekday: 'long', month: 'short', day: 'numeric'
-  });
+  deliveryDate.setDate(deliveryDate.getDate() + 5);
+  const formattedDeliveryDate = deliveryDate.toLocaleDateString('en-IN', { weekday: 'long', month: 'short', day: 'numeric' });
 
   return (
-    <div className="min-h-screen bg-[#f1f3f6] flex justify-center items-start font-sans">
-      <div className="w-full max-w-[480px] min-h-screen bg-white flex flex-col shadow-sm border-x border-gray-100 pb-8 px-6 justify-between">
-        
-        {/* Top Spacer */}
-        <div className="flex-1 flex flex-col justify-center items-center py-12">
-          {/* Animated Green Checkbox */}
-          <motion.div 
-            initial={{ scale: 0, rotate: -45 }} 
-            animate={{ scale: 1, rotate: 0 }} 
-            transition={{ type: 'spring', damping: 10, stiffness: 100, delay: 0.1 }}
-            className="w-20 h-20 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 mb-6 shadow-sm"
+    <div
+      className="min-h-screen bg-[#faf7f2] flex justify-center items-center py-8 px-4"
+      style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+    >
+      <SEOHead
+        title="Order Confirmed! | TOPSUN Footwear"
+        description="Your TOPSUN footwear order has been successfully placed. Check invoice, estimated delivery, and live tracking."
+        noIndex={true}
+      />
+
+      <div className="w-full max-w-[440px] space-y-4">
+        {/* Success Card */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 15 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="bg-white rounded-3xl border border-[#e4ded5] p-8 shadow-xs text-center space-y-4"
+        >
+          <div className="h-[3px] bg-gradient-to-r from-[#b38b3f] to-[#dfc38a] rounded-full mx-8 mb-4" />
+
+          <motion.div
+            initial={{ scale: 0, rotate: -20 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ type: 'spring', damping: 10, stiffness: 100, delay: 0.15 }}
+            className="w-20 h-20 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 mx-auto"
           >
-            <ShieldCheck size={44} className="stroke-[1.5]" />
+            <ShieldCheck size={40} className="stroke-[1.5]" />
           </motion.div>
 
-          {/* Success Titles */}
-          <motion.h1 
-            initial={{ opacity: 0, y: 15 }} 
-            animate={{ opacity: 1, y: 0 }} 
-            transition={{ delay: 0.3 }}
-            className="text-[24px] font-bold text-gray-900 tracking-tight text-center leading-tight"
-          >
-            Order Confirmed!
-          </motion.h1>
-          
-          <motion.p 
-            initial={{ opacity: 0, y: 15 }} 
-            animate={{ opacity: 1, y: 0 }} 
-            transition={{ delay: 0.4 }}
-            className="text-[14px] text-gray-500 text-center mt-2 px-4 leading-relaxed font-medium"
-          >
-            Thank you for shopping with TopSun! Your order has been successfully processed and prepared for shipping.
-          </motion.p>
-
-          {/* Order Details box */}
-          {order && (
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }} 
-              animate={{ opacity: 1, y: 0 }} 
-              transition={{ delay: 0.5 }}
-              className="w-full bg-[#f8f9fa] border border-[#edeeef] rounded-2xl p-4 mt-8 space-y-3.5 text-[13px]"
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
+            <h1
+              className="text-2xl sm:text-3xl font-semibold text-[#121518]"
+              style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
             >
-              <div className="flex justify-between items-center text-gray-600">
-                <span>Order ID</span>
-                <span className="font-bold text-gray-900 font-mono">#{order.order_number}</span>
+              Order Confirmed!
+            </h1>
+            <p className="text-xs text-[#606870] mt-1.5 leading-relaxed px-4">
+              Thank you for shopping with TOPSUN. Your order is confirmed and being prepared for dispatch.
+            </p>
+          </motion.div>
+
+          {/* Order Details */}
+          {order && (
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.35 }}
+              className="bg-[#faf7f2] rounded-2xl border border-[#e4ded5] p-4 text-left space-y-3 text-xs mt-2"
+            >
+              <div className="flex justify-between items-center">
+                <span className="text-[#606870]">Order Number</span>
+                <span className="font-bold text-[#121518] font-mono">#{order.order_number}</span>
               </div>
-              <div className="flex justify-between items-center text-gray-600">
-                <span>Amount Paid</span>
-                <span className="font-bold text-gray-900">₹{finalAmount.toLocaleString('en-IN')}</span>
+              <div className="flex justify-between items-center">
+                <span className="text-[#606870]">Amount Paid</span>
+                <span className="font-bold text-[#121518]">₹{finalAmount.toLocaleString('en-IN')}</span>
               </div>
-              <div className="flex justify-between items-center text-gray-600">
-                <span>Payment Method</span>
-                <span className="font-bold text-gray-900 capitalize">
-                  {order.payment_method === 'cod' ? 'Cash On Delivery' : order.payment_method}
+              <div className="flex justify-between items-center">
+                <span className="text-[#606870]">Payment Method</span>
+                <span className="font-bold text-[#121518] capitalize">
+                  {order.payment_method === 'cod' ? 'Cash on Delivery' : order.payment_method}
                 </span>
               </div>
-              
-              <div className="border-t border-dashed border-gray-200 pt-3 flex gap-2.5 items-start text-gray-600">
-                <Calendar size={16} className="text-blue-500 mt-0.5 flex-shrink-0" />
+              <div className="border-t border-[#e4ded5] pt-3 flex gap-2.5 items-center">
+                <div className="w-8 h-8 rounded-lg bg-[rgba(179,139,63,0.12)] flex items-center justify-center shrink-0">
+                  <Truck size={15} className="text-[#b38b3f]" />
+                </div>
                 <div>
-                  <span className="text-[11.5px] uppercase font-bold text-gray-400 block tracking-wider">Estimated Delivery</span>
-                  <span className="font-bold text-gray-800 text-[13.5px] mt-0.5 block">{formattedDeliveryDate}</span>
+                  <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider block">Est. Delivery</span>
+                  <span className="font-bold text-[#121518] text-xs">{formattedDeliveryDate}</span>
                 </div>
               </div>
             </motion.div>
           )}
-        </div>
+        </motion.div>
 
-        {/* Action CTAs at bottom */}
-        <div className="space-y-3 w-full">
-          <Link 
+        {/* Action Buttons */}
+        <div className="space-y-2.5">
+          <Link
             to={`/order-confirmation/${orderId}`}
-            className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 active:scale-98 transition-all text-[14px]"
+            className="w-full py-3.5 bg-[#121518] hover:bg-black text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-colors text-xs uppercase tracking-wider shadow-xs"
           >
-            <span>Track Order & View Details</span>
-            <ArrowRight size={16} />
+            <span>Track Order & View Invoice</span>
+            <ArrowRight size={14} />
           </Link>
-          
-          <Link 
+          <Link
             to="/shop"
-            className="w-full py-4 border-2 border-gray-300 hover:bg-gray-50 text-gray-800 font-bold rounded-xl flex items-center justify-center gap-2 active:scale-98 transition-all text-[14px]"
+            className="w-full py-3.5 bg-white border border-[#e4ded5] hover:bg-[#faf7f2] text-[#121518] font-bold rounded-xl flex items-center justify-center gap-2 transition-colors text-xs"
           >
-            <ShoppingBag size={16} className="text-gray-600" />
+            <ShoppingBag size={14} className="text-gray-500" />
             <span>Continue Shopping</span>
           </Link>
         </div>
-
       </div>
     </div>
   );

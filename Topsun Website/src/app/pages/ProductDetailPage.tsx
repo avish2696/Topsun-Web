@@ -1,17 +1,19 @@
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import Header from '@/app/components/Header';
 import ProductDetailPageComponent from '@/app/components/ProductDetailPage';
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
 import { getProductBySlug, getRelatedProducts } from '@/app/routes/Routes';
 import { useShopping, CartItem } from '@/app/context/ShoppingContext';
-import { useAuth } from '@/app/context/AuthContext';
-import Shoe1 from '@/imports/storm-runner/1.png';
-import Shoe2 from '@/imports/urban-classic/1.png';
-import Shoe3 from '@/imports/trail-blaze/1.png';
-import Shoe4 from '@/imports/comfort-walk/1.png';
-import Shoe5 from '@/imports/street-edge/1.png';
-import Shoe6 from '@/imports/everyday-flex/1.png';
-import Shoe7 from '@/imports/sprint-pro/1.png';
+import { SEOHead } from '@/app/components/SEOHead';
+import { Breadcrumbs } from '@/app/components/Breadcrumbs';
+
+import Shoe1 from '@/imports/storm-runner/1.webp';
+import Shoe2 from '@/imports/urban-classic/1.webp';
+import Shoe3 from '@/imports/trail-blaze/1.webp';
+import Shoe4 from '@/imports/comfort-walk/1.webp';
+import Shoe5 from '@/imports/street-edge/1.webp';
+import Shoe6 from '@/imports/everyday-flex/1.webp';
+import Shoe7 from '@/imports/sprint-pro/1.webp';
 
 const shoeImages: Record<number, string> = {
   1: Shoe1,
@@ -28,7 +30,6 @@ export default function ProductDetailPageRoute() {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { addToCart, getCartItemCount } = useShopping();
-  const { user } = useAuth();
 
   const product = productSlug ? getProductBySlug(productSlug) : null;
 
@@ -38,22 +39,27 @@ export default function ProductDetailPageRoute() {
 
   if (!product) {
     return (
-      <div className="min-h-screen bg-[#fafafa] flex flex-col items-center justify-center">
+      <div className="min-h-screen bg-[#faf7f2] flex flex-col items-center justify-center text-[#121518]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
         <Header
           cartCount={getCartItemCount()}
           onCartClick={() => navigate('/cart')}
           onMobileMenuToggle={setMobileMenuOpen}
           mobileMenuOpen={mobileMenuOpen}
         />
-        <div className="text-center mt-20 p-8 bg-white rounded-3xl border border-gray-200 shadow-xs max-w-md mx-4">
-          <h1 className="text-2xl font-bold mb-2 text-gray-900">Product Not Found</h1>
-          <p className="text-gray-500 mb-6 text-sm">Sorry, the product you're looking for doesn't exist.</p>
-          <button
-            onClick={() => navigate('/shop')}
-            className="bg-gray-900 text-white px-6 py-2.5 rounded-full font-bold text-sm hover:bg-black"
+        <div className="text-center mt-20 p-10 bg-white rounded-3xl border border-[#e4ded5] shadow-xs max-w-md mx-4 space-y-4">
+          <h1
+            className="text-2xl sm:text-3xl font-semibold text-[#121518]"
+            style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
           >
-            Back to Shop
-          </button>
+            Footwear Not Found
+          </h1>
+          <p className="text-xs text-[#606870]">Sorry, the requested shoe model doesn't exist or is currently unlisted.</p>
+          <Link
+            to="/shop"
+            className="inline-block px-7 py-3 bg-[#121518] text-white rounded-lg font-bold text-xs uppercase tracking-wider hover:bg-black transition-colors"
+          >
+            Explore Collection
+          </Link>
         </div>
       </div>
     );
@@ -65,7 +71,8 @@ export default function ProductDetailPageRoute() {
       slug: product.slug,
       name: product.name,
       price: product.price,
-      image: shoeImages[product.id],
+      originalPrice: product.originalPrice,
+      image: shoeImages[product.id] || product.image,
       size: size,
       quantity: quantity,
       colorLabel: product.colorLabel,
@@ -73,12 +80,36 @@ export default function ProductDetailPageRoute() {
     await addToCart(cartItem);
   };
 
-  const handleAddToWishlist = () => {};
-
   const relatedProducts = getRelatedProducts(product.id);
 
   return (
-    <div className="min-h-screen bg-[#fafafa]" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="min-h-screen bg-[#faf7f2] text-[#121518]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+      <SEOHead
+        title={`${product.name} – ${product.category} Performance Shoe`}
+        description={product.description}
+        canonicalUrl={`https://topsunfootwear.com/product/${product.slug}`}
+        ogImage={shoeImages[product.id] || product.image}
+        ogType="product"
+        productData={{
+          name: product.name,
+          description: product.description,
+          price: product.price,
+          originalPrice: product.originalPrice,
+          image: shoeImages[product.id] || product.image,
+          brand: 'TOPSUN',
+          category: product.category,
+          rating: product.rating,
+          reviewsCount: product.reviews,
+          inStock: product.inStock,
+          sku: product.slug,
+        }}
+        breadcrumbs={[
+          { name: 'Home', url: '/' },
+          { name: 'Shop', url: '/shop' },
+          { name: product.name, url: `/product/${product.slug}` },
+        ]}
+      />
+
       <Header
         cartCount={getCartItemCount()}
         onCartClick={() => navigate('/cart')}
@@ -86,14 +117,21 @@ export default function ProductDetailPageRoute() {
         mobileMenuOpen={mobileMenuOpen}
       />
 
-      <div className="pt-24 sm:pt-28">
+      <main className="pt-24 sm:pt-28 pb-20 max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+        <Breadcrumbs
+          items={[
+            { label: 'Shop', href: '/shop' },
+            { label: product.category, href: '/shop' },
+            { label: product.name },
+          ]}
+        />
+
         <ProductDetailPageComponent
           product={product}
           onAddToCart={handleAddToCart}
-          onAddToWishlist={handleAddToWishlist}
           relatedProducts={relatedProducts}
         />
-      </div>
+      </main>
     </div>
   );
 }

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/app/context/AuthContext';
 import { Shield, Mail, ArrowRight, Loader, AlertCircle, CheckCircle, KeyRound } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import TopsunLogoImg from '@/imports/TOPSUN png 1.png';
+import TopsunLogoImg from '@/imports/TOPSUN png 1.webp';
 
 const ADMIN_EMAILS = [
   'admin@topsun.in',

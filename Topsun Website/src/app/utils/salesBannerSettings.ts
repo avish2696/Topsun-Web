@@ -2,23 +2,23 @@ import { useState, useEffect } from 'react';
 
 export interface SalesBannerConfig {
   title: string;
-  targetDate: string; // ISO string e.g. "2026-08-31T23:59:59"
+  targetDate: string; // ISO string e.g. "2026-09-02T18:00:00.000Z"
   enabled: boolean;
   highlightText: string;
 }
 
 const STORAGE_KEY = 'topsun_sales_banner_config';
 
-// Default initial config (2 days from now)
-const getDefaultConfig = (): SalesBannerConfig => {
-  const future = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
-  return {
-    title: 'Comfort Rush Deals',
-    targetDate: future.toISOString(),
-    enabled: true,
-    highlightText: 'Ends In:',
-  };
-};
+// Fixed baseline target date: September 2, 2026 23:59:59 (constant for all visitors)
+const FIXED_GLOBAL_TARGET = '2026-09-02T18:29:59.000Z';
+
+// Static default configuration (does NOT recompute from Date.now() on each visit)
+const getDefaultConfig = (): SalesBannerConfig => ({
+  title: 'Comfort Rush Deals',
+  targetDate: FIXED_GLOBAL_TARGET,
+  enabled: true,
+  highlightText: 'Ends In:',
+});
 
 export const getSalesBannerSettings = (): SalesBannerConfig => {
   try {
@@ -48,7 +48,7 @@ export function useSalesBanner() {
     days: 1,
     hours: 12,
     minutes: 16,
-    seconds: 50,
+    seconds: 17,
     isExpired: false,
   });
 
@@ -72,9 +72,9 @@ export function useSalesBanner() {
 
   useEffect(() => {
     const updateCountdown = () => {
-      const target = new Date(config.targetDate).getTime();
+      const targetTime = new Date(config.targetDate).getTime();
       const now = Date.now();
-      const difference = target - now;
+      const difference = targetTime - now;
 
       if (difference <= 0) {
         setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0, isExpired: true });

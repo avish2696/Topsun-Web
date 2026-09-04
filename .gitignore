@@ -1,0 +1,11 @@
+# Ignore nested independent git repositories
+Maurya Collection Website/
+
+# Dependencies & Build outputs
+node_modules/
+dist/
+.vscode/
+*.log
+.env
+.env.local
+.env.*.local

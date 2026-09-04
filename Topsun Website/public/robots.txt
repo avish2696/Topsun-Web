@@ -1,0 +1,11 @@
+# TOPSUN Footwear robots.txt
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin-login
+Disallow: /checkout
+Disallow: /profile
+Disallow: /orders
+Disallow: /auth/
+
+Sitemap: https://topsunfootwear.com/sitemap.xml

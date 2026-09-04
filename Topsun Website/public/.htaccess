@@ -28,7 +28,11 @@
   RewriteRule ^ index.html [L]
 </IfModule>
 
-# Gzip / Deflate Compression
+# Gzip / Deflate & Brotli Compression
+<IfModule mod_brotli.c>
+  AddOutputFilterByType BROTLI_COMPRESS text/plain text/html text/xml text/css text/javascript application/xml application/xhtml+xml application/rss+xml application/javascript application/x-javascript application/json image/svg+xml
+</IfModule>
+
 <IfModule mod_deflate.c>
   AddOutputFilterByType DEFLATE text/plain
   AddOutputFilterByType DEFLATE text/html
@@ -41,7 +45,13 @@
   AddOutputFilterByType DEFLATE application/javascript
   AddOutputFilterByType DEFLATE application/x-javascript
   AddOutputFilterByType DEFLATE application/json
+  AddOutputFilterByType DEFLATE image/svg+xml
   AddEncoding gzip .gz
+</IfModule>
+
+# Enable Keep-Alive Connection for faster asset loading
+<IfModule mod_headers.c>
+  Header set Connection keep-alive
 </IfModule>
 
 # Browser Caching

@@ -1,45 +1,49 @@
 import React, { useState, useEffect } from 'react';
 import Header from '@/app/components/Header';
-import { motion } from 'motion/react';
-import { Briefcase, Users, Target, Heart, MessageCircle, ArrowRight } from 'lucide-react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Briefcase, Users, Target, Heart, MapPin, ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useShopping } from '@/app/context/ShoppingContext';
+import { SEOHead } from '@/app/components/SEOHead';
+import { Breadcrumbs } from '@/app/components/Breadcrumbs';
+
+const openings = [
+  {
+    title: 'Footwear & Product Designer',
+    department: 'Design & R&D',
+    location: 'Raniganj, West Bengal / Hybrid',
+    type: 'Full-time',
+    description: 'Craft high-performance running silhouettes, midsole ergonomics, and seasonal color palettes.',
+  },
+  {
+    title: 'Supply Chain & Logistics Specialist',
+    department: 'Operations',
+    location: 'India (Flexible)',
+    type: 'Full-time',
+    description: 'Oversee warehouse fulfillment, courier SLA tracking, and direct distribution networks.',
+  },
+  {
+    title: 'Customer Experience Specialist',
+    department: 'Customer Care',
+    location: 'Remote',
+    type: 'Full-time',
+    description: 'Delight athletes and runners with rapid sizing guidance and seamless exchange support via WhatsApp.',
+  },
+];
 
 export default function Careers() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { getCartItemCount } = useShopping();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
-
-  const openings = [
-    {
-      title: 'Footwear & Product Designer',
-      department: 'Design & R&D',
-      location: 'Raniganj, West Bengal / Hybrid',
-      type: 'Full-time',
-      description: 'Craft high-performance running silhouettes, midsole ergonomics, and color palettes.',
-    },
-    {
-      title: 'Supply Chain & Logistics Specialist',
-      department: 'Operations',
-      location: 'India',
-      type: 'Full-time',
-      description: 'Oversee warehouse fulfillment, courier SLA tracking, and direct distribution.',
-    },
-    {
-      title: 'Customer Experience & WhatsApp Specialist',
-      department: 'Customer Care',
-      location: 'Remote',
-      type: 'Full-time',
-      description: 'Delight athletes and runners with rapid sizing guidance and seamless exchange support.',
-    },
-  ];
+  useEffect(() => { window.scrollTo(0, 0); }, []);
 
   return (
-    <div className="min-h-screen bg-[#fafafa]" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="min-h-screen bg-[#faf7f2] text-[#121518]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+      <SEOHead
+        title="Careers at TOPSUN – Join Our Footwear Team | INTELAGROW PVT. LTD."
+        description="Explore open roles at TOPSUN footwear. Join our passionate team building the future of direct-to-consumer athletic footwear in India."
+        breadcrumbs={[{ name: 'Home', url: '/' }, { name: 'Careers', url: '/careers' }]}
+      />
       <Header
         cartCount={getCartItemCount()}
         onCartClick={() => navigate('/cart')}
@@ -47,96 +51,77 @@ export default function Careers() {
         mobileMenuOpen={mobileMenuOpen}
       />
 
-      {/* Floating WhatsApp Support Button */}
-      <a
-        href="https://wa.me/917485006659?text=Hi%20TOPSUN%20Team!%20I'm%20interested%20in%20career%20opportunities."
-        target="_blank"
-        rel="noopener noreferrer"
-        className="fixed bottom-6 left-4 z-40 w-12 h-12 rounded-full bg-[#25D366] text-white flex items-center justify-center shadow-lg shadow-green-500/30 hover:scale-105 active:scale-95 transition-transform"
-        aria-label="WhatsApp"
-        title="WhatsApp Support"
-      >
-        <MessageCircle size={26} className="fill-current" />
-      </a>
+      <main className="pt-24 sm:pt-28 pb-24 max-w-[1000px] mx-auto px-4 sm:px-6 space-y-8">
+        <Breadcrumbs items={[{ label: 'Careers' }]} />
 
-      <main className="pt-24 sm:pt-28 pb-20 max-w-[1000px] mx-auto px-4 sm:px-6 space-y-8">
-        {/* Header Hero */}
-        <section className="bg-white rounded-3xl p-6 sm:p-10 border border-gray-200/70 shadow-xs text-center">
-          <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-blue-50 text-[#009FE3] font-extrabold text-[11px] uppercase tracking-widest mb-3">
-            Careers at TOPSUN
+        {/* Hero */}
+        <div className="bg-white rounded-3xl border border-[#e4ded5] p-8 sm:p-12 shadow-xs text-center space-y-3">
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[rgba(179,139,63,0.12)] border border-[rgba(179,139,63,0.25)] text-[#8c6820] text-[11px] font-bold tracking-wider uppercase">
+            <Briefcase size={12} className="text-[#b38b3f]" /> Careers at TOPSUN
           </span>
-          <h1 className="text-3xl sm:text-5xl font-black text-gray-900 leading-tight">
+          <h1
+            className="text-3xl sm:text-5xl font-semibold text-[#121518] leading-tight"
+            style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+          >
             Build the Future of <br />
-            <span className="text-[#009FE3]">Athletic Footwear</span>
+            <span className="text-[#b38b3f]">Athletic Footwear</span>
           </h1>
-          <p className="text-xs sm:text-sm text-gray-500 max-w-lg mx-auto mt-2 leading-relaxed">
-            Join a fast-moving team dedicated to engineering pro-tier running shoes at direct-to-consumer prices.
+          <p className="text-xs sm:text-sm text-[#606870] max-w-lg mx-auto leading-relaxed">
+            Join a fast-moving, mission-driven team dedicated to engineering pro-tier performance shoes at direct-to-consumer prices.
           </p>
-        </section>
+        </div>
 
-        {/* Culture Badges */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-white p-5 rounded-2xl border border-gray-200/70 shadow-xs space-y-2">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#009FE3] flex items-center justify-center">
-              <Target size={20} />
+        {/* Culture */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+          {[
+            { Icon: Target, title: 'Obsessed with Quality', desc: 'Every shoe is built with high-density EVA foam and track tested.' },
+            { Icon: Users, title: 'Direct Impact', desc: 'Fast decision-making without corporate bureaucracy or red tape.' },
+            { Icon: Heart, title: 'Competitive Growth', desc: 'Fair compensation, health allowances, and shoe credit for team members.' },
+          ].map(({ Icon, title, desc }) => (
+            <div key={title} className="bg-white p-6 rounded-3xl border border-[#e4ded5] shadow-xs space-y-2">
+              <div className="w-10 h-10 rounded-2xl bg-[rgba(179,139,63,0.1)] flex items-center justify-center">
+                <Icon size={20} className="text-[#b38b3f]" />
+              </div>
+              <h3 className="text-sm font-bold text-[#121518]">{title}</h3>
+              <p className="text-xs text-[#606870] leading-relaxed">{desc}</p>
             </div>
-            <h3 className="text-sm font-bold text-gray-900">Obsessed with Quality</h3>
-            <p className="text-xs text-gray-500">Every shoe is built with high-density EVA foam and tested on real tracks.</p>
-          </div>
-
-          <div className="bg-white p-5 rounded-2xl border border-gray-200/70 shadow-xs space-y-2">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#009FE3] flex items-center justify-center">
-              <Users size={20} />
-            </div>
-            <h3 className="text-sm font-bold text-gray-900">Direct Impact</h3>
-            <p className="text-xs text-gray-500">Fast decision making without corporate bureaucracy or endless red tape.</p>
-          </div>
-
-          <div className="bg-white p-5 rounded-2xl border border-gray-200/70 shadow-xs space-y-2">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#009FE3] flex items-center justify-center">
-              <Heart size={20} />
-            </div>
-            <h3 className="text-sm font-bold text-gray-900">Competitive Growth</h3>
-            <p className="text-xs text-gray-500">Fair compensation, health allowances, and shoe allowances for team members.</p>
-          </div>
+          ))}
         </div>
 
         {/* Open Roles */}
-        <section className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-200/70 shadow-xs space-y-5">
-          <h2 className="text-xl font-bold text-gray-900">Open Roles</h2>
-          <div className="space-y-3">
+        <div className="bg-white rounded-3xl border border-[#e4ded5] p-6 sm:p-8 shadow-xs space-y-5">
+          <h2
+            className="text-2xl font-semibold text-[#121518]"
+            style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+          >
+            Open Roles
+          </h2>
+          <div className="space-y-4">
             {openings.map((job, idx) => (
               <div
                 key={idx}
-                className="bg-gray-50/70 p-5 rounded-2xl border border-gray-200/60 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                className="bg-[#faf7f2] p-5 rounded-2xl border border-[#e4ded5] flex flex-col sm:flex-row sm:items-center justify-between gap-4"
               >
                 <div className="space-y-1">
-                  <span className="text-[10px] font-extrabold uppercase text-[#009FE3] tracking-wider">{job.department}</span>
-                  <h3 className="text-base font-bold text-gray-900">{job.title}</h3>
-                  <p className="text-xs text-gray-600">{job.description}</p>
-                  <p className="text-[11px] text-gray-400 font-medium">📍 {job.location} · {job.type}</p>
+                  <span className="text-[10px] font-bold uppercase text-[#b38b3f] tracking-wider">{job.department}</span>
+                  <h3 className="text-sm font-bold text-[#121518]">{job.title}</h3>
+                  <p className="text-xs text-[#606870] leading-relaxed">{job.description}</p>
+                  <div className="flex items-center gap-1 text-[11px] text-gray-400 font-medium pt-0.5">
+                    <MapPin size={11} /> {job.location} · {job.type}
+                  </div>
                 </div>
                 <a
-                  href={`mailto:topsunshoes7@gmail.com?subject=Job%20Application%20-%20${encodeURIComponent(job.title)}`}
-                  className="px-5 py-2.5 bg-gray-900 hover:bg-black text-white text-xs font-bold rounded-xl whitespace-nowrap self-start sm:self-center transition-colors"
+                  href={`mailto:topsunshoes7@gmail.com?subject=Job Application – ${encodeURIComponent(job.title)}`}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#121518] hover:bg-black text-white text-xs font-bold rounded-xl whitespace-nowrap self-start sm:self-center transition-colors shadow-xs"
                 >
-                  Apply Now →
+                  <span>Apply Now</span>
+                  <ArrowRight size={13} />
                 </a>
               </div>
             ))}
           </div>
-        </section>
-      </main>
-
-      {/* Footer */}
-      <footer className="bg-[#0c0c0c] text-white py-12 px-6 text-center text-xs text-gray-400 space-y-3">
-        <p>© 2026 TOPSUN Performance Sneakers. All rights reserved.</p>
-        <div className="flex justify-center gap-4 text-gray-500 font-semibold">
-          <Link to="/about" className="hover:text-white">About Us</Link>
-          <Link to="/shop" className="hover:text-white">Shop</Link>
-          <Link to="/contact" className="hover:text-white">Contact</Link>
         </div>
-      </footer>
+      </main>
     </div>
   );
 }

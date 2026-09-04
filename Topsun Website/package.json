@@ -64,13 +64,13 @@
     "react-popper": "2.3.0",
     "react-resizable-panels": "2.1.7",
     "react-responsive-masonry": "2.7.1",
-    "react-router-dom": "7.13.0",
+    "react-router-dom": "^7.18.3",
     "react-slick": "0.31.0",
     "recharts": "2.15.2",
     "sonner": "2.0.3",
     "tailwind-merge": "3.2.0",
     "tw-animate-css": "1.3.8",
-    "uuid": "9.0.1",
+    "uuid": "^14.0.2",
     "vaul": "1.1.2"
   },
   "devDependencies": {
@@ -86,9 +86,12 @@
     "happy-dom": "^20.10.6",
     "lightningcss": "1.30.1",
     "lightningcss-win32-x64-msvc": "^1.32.0",
+    "sharp": "^0.35.4",
+    "svgo": "^4.1.0",
     "terser": "^5.48.0",
     "typescript": "^5.3.3",
-    "vite": "6.3.5",
+    "vite": "^6.4.3",
+    "vite-plugin-image-optimizer": "^2.0.3",
     "vitest": "^4.1.9"
   },
   "peerDependencies": {
