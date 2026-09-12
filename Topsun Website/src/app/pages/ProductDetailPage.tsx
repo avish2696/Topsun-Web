@@ -4,6 +4,7 @@ import Header from '@/app/components/Header';
 import ProductDetailPageComponent from '@/app/components/ProductDetailPage';
 import { getProductBySlug, getRelatedProducts } from '@/app/routes/Routes';
 import { useShopping, CartItem } from '@/app/context/ShoppingContext';
+import { useProductOffers, calculateShoePrice } from '@/app/utils/productOffers';
 import { SEOHead } from '@/app/components/SEOHead';
 import { Breadcrumbs } from '@/app/components/Breadcrumbs';
 
@@ -30,8 +31,18 @@ export default function ProductDetailPageRoute() {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { addToCart, getCartItemCount } = useShopping();
+  const { offers: productOffers } = useProductOffers();
 
-  const product = productSlug ? getProductBySlug(productSlug) : null;
+  // Static product data (slug/name/specs never change)
+  const baseProduct = productSlug ? getProductBySlug(productSlug) : null;
+
+  // Apply live offer reactively so price updates when admin changes it
+  const product = baseProduct ? (() => {
+    const offer = productOffers[baseProduct.id];
+    const { price, discount, badge } = calculateShoePrice(baseProduct.originalPrice || baseProduct.price, offer);
+    return { ...baseProduct, price, originalPrice: baseProduct.originalPrice || baseProduct.price, tag: badge || baseProduct.tag, discountPercent: discount };
+  })() : null;
+
 
   useEffect(() => {
     window.scrollTo(0, 0);

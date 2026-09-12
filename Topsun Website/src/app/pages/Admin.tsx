@@ -252,9 +252,13 @@ function AdminDashboard() {
       prevOrdersCountRef.current = fetchedOrders.length;
       setOrders(fetchedOrders);
 
-      // Refresh tracked carts & product offers
+      // Refresh tracked carts
       setAbandonedCarts(getTrackedCarts());
-      setProductOffers(getProductOffers());
+      // Refresh product offers from Supabase (remote source of truth)
+      const { fetchRemoteProductOffers } = await import('@/app/utils/productOffers');
+      const remoteOffers = await fetchRemoteProductOffers();
+      if (remoteOffers) setProductOffers(remoteOffers);
+      else setProductOffers(getProductOffers());
 
       // 2. Fetch or Map Users
       const usersMap = new Map<string, DBUser>();
@@ -569,8 +573,9 @@ function AdminDashboard() {
         targetDate: new Date(bannerTargetDate).toISOString(),
         enabled: bannerEnabled,
       };
-      saveSalesBannerSettings(updated);
+      const saved = await saveSalesBannerSettings(updated);
       setBannerConfig(updated);
+      if (!saved) toast.warning('Saved locally — Supabase sync may be unavailable.');
       toast.success('Sales offer & countdown updated successfully across website!');
 
       // ── Broadcast to all customers if banner is enabled ───────────────────
@@ -889,11 +894,15 @@ function AdminDashboard() {
     }));
   };
 
-  const handleSaveShoeOffers = () => {
+  const handleSaveShoeOffers = async () => {
     setSavingOffers(true);
     try {
-      saveAllProductOffers(productOffers);
-      toast.success('Shoe promotional offers updated and broadcasted storewide!');
+      const saved = await saveAllProductOffers(productOffers);
+      if (saved) {
+        toast.success('✅ Shoe offers saved & broadcasted storewide in real-time!');
+      } else {
+        toast.success('Shoe offers saved locally (Supabase sync may be unavailable)');
+      }
     } catch (err: any) {
       toast.error('Failed to save offers: ' + err.message);
     } finally {
@@ -901,8 +910,8 @@ function AdminDashboard() {
     }
   };
 
-  const handleResetShoeOffers = () => {
-    resetAllProductOffers();
+  const handleResetShoeOffers = async () => {
+    await resetAllProductOffers();
     setProductOffers(getProductOffers());
     toast.success('All shoes reset to their original selling prices!');
   };
@@ -2181,7 +2190,64 @@ function AdminDashboard() {
         {/* ══════════════════════════════════════════════════════════════════ */}
         {activeTab === 'marketing' && (
           <div className="max-w-3xl mx-auto space-y-6">
-            
+
+            {/* ── Currently Live on Website Status Panel ─────────────────────── */}
+            <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl p-5 shadow-xs">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                <h3 className="text-sm font-extrabold text-emerald-900 uppercase tracking-wider">Currently Live on Website</h3>
+                <span className="ml-auto text-[10px] text-emerald-600 font-bold px-2 py-0.5 bg-emerald-100 rounded-full border border-emerald-200">Real-Time from Supabase</span>
+              </div>
+
+              {/* Live Banner Status */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                <div className="bg-white rounded-xl p-3.5 border border-emerald-100 shadow-xs">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase mb-1.5 flex items-center gap-1"><Tag size={10} /> Live Offer Banner</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`w-2 h-2 rounded-full ${bannerConfig.enabled ? 'bg-emerald-500 animate-pulse' : 'bg-gray-300'}`} />
+                    <span className="text-xs font-bold text-gray-900">{bannerConfig.title}</span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${bannerConfig.enabled ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-500'}`}>
+                      {bannerConfig.enabled ? 'ACTIVE' : 'HIDDEN'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-gray-500 mt-1">
+                    Ends: <strong>{new Date(bannerConfig.targetDate).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</strong>
+                  </p>
+                </div>
+
+                <div className="bg-white rounded-xl p-3.5 border border-emerald-100 shadow-xs">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase mb-1.5 flex items-center gap-1"><Percent size={10} /> Active Price Discounts</p>
+                  {(() => {
+                    const activeOffers = PRODUCTS.filter(p => {
+                      const o = productOffers[p.id];
+                      return o?.enabled && (o.discountPercent || o.customPrice);
+                    });
+                    return activeOffers.length === 0 ? (
+                      <p className="text-xs text-gray-400 font-medium">No active discounts — all products at regular price</p>
+                    ) : (
+                      <div className="space-y-1 max-h-24 overflow-y-auto">
+                        {activeOffers.map(p => {
+                          const o = productOffers[p.id];
+                          const calc = calculateShoePrice(p.originalPrice || p.price, o);
+                          return (
+                            <div key={p.id} className="flex items-center justify-between text-[11px]">
+                              <span className="text-gray-700 font-medium truncate max-w-[140px]">{p.name}</span>
+                              <span className="font-black text-emerald-800 shrink-0">₹{calc.price.toLocaleString('en-IN')} <span className="text-emerald-600 font-bold">({calc.badge})</span></span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              <p className="text-[11px] text-emerald-700 font-medium">
+                ✅ Changes saved here update <strong>all website pages instantly</strong> via Supabase Realtime — no refresh needed for visitors.
+              </p>
+            </div>
+
+
             <div className="bg-white rounded-2xl p-6 border border-gray-200/80 shadow-xs">
               <div className="flex items-center justify-between mb-4">
                 <div>

@@ -199,7 +199,7 @@ export default function Home() {
 
   const navigate = useNavigate();
   const { addToCart, getCartItemCount } = useShopping();
-  const productOffers = useProductOffers();
+  const { offers: productOffers } = useProductOffers();
 
   // Dynamically compute live prices strictly from original price according to active admin offers
   const products: ShoeProduct[] = BASE_PRODUCTS.map((p) => {

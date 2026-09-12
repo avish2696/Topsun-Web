@@ -3,8 +3,8 @@ import Header from '@/app/components/Header';
 import {
   Star, Heart, Search, X, ShoppingCart, MessageCircle
 } from 'lucide-react';
-import { PRODUCTS, getAllProductsWithOffers } from '@/data/products';
-import { useProductOffers } from '@/app/utils/productOffers';
+import { PRODUCTS } from '@/data/products';
+import { useProductOffers, calculateShoePrice } from '@/app/utils/productOffers';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useShopping } from '@/app/context/ShoppingContext';
 import { SEOHead } from '@/app/components/SEOHead';
@@ -187,8 +187,12 @@ export default function Shop() {
     setSizeModalProduct(null);
   };
 
-  useProductOffers();
-  const allProducts = getAllProductsWithOffers();
+  const { offers: productOffers } = useProductOffers();
+  const allProducts = PRODUCTS.map((p) => {
+    const offer = productOffers[p.id];
+    const { price, discount, badge } = calculateShoePrice(p.originalPrice || p.price, offer);
+    return { ...p, price, originalPrice: p.originalPrice || p.price, tag: badge || p.tag, discountPercent: discount };
+  });
 
   const filteredProducts = allProducts
     .filter((p) => {
