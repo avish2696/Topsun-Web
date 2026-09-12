@@ -69,20 +69,7 @@ export default defineConfig({
         chunkFileNames: 'assets/[name].[hash].js',
         assetFileNames: 'assets/[name].[hash][extname]',
         manualChunks(id) {
-          if (!id.includes('node_modules')) return;
-          if (id.includes('recharts')) return 'vendor-charts';
-          if (id.includes('@radix-ui')) return 'vendor-radix';
-          if (id.includes('@supabase')) return 'vendor-supabase';
-          if (id.includes('motion') || id.includes('animejs')) return 'vendor-animation';
-          if (id.includes('lucide-react') || id.includes('iconsax-react')) return 'vendor-icons';
-          if (id.includes('embla-carousel')) return 'vendor-carousel';
-          if (
-            id.includes('/react/') ||
-            id.includes('/react-dom/') ||
-            id.includes('scheduler') ||
-            id.includes('react-router')
-          ) return 'vendor-react';
-          return 'vendor-libs';
+          if (id.includes('three')) return 'vendor-three';
         },
       },
     },

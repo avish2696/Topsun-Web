@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AdminRoute } from '@/app/components/auth/AdminRoute';
 import { supabase } from '@/supabase';
@@ -9,7 +9,8 @@ import {
   CreditCard, Package, TrendingUp, IndianRupee, Clock, Mail,
   LogOut, CheckCircle2, XCircle, Phone, MessageSquare,
   Download, Eye, RefreshCw, ShoppingBag, Truck, Check, ArrowUpRight,
-  ShieldCheck, Tag, ExternalLink, Printer, SlidersHorizontal
+  ShieldCheck, Tag, ExternalLink, Printer, SlidersHorizontal,
+  Bell, Volume2, VolumeX, Sparkles, Send, FileText, Percent, AlertTriangle
 } from 'lucide-react';
 import { format, subDays } from 'date-fns';
 import {
@@ -20,6 +21,10 @@ import { getSalesBannerSettings, saveSalesBannerSettings, SalesBannerConfig } fr
 import { PRODUCTS } from '@/data/products';
 import { toast } from 'sonner';
 import TopsunLogoImg from '@/imports/TOPSUN png 1.webp';
+import { openInvoicePrintWindow } from '@/app/utils/invoiceGenerator';
+import { getTrackedCarts, markCartAsRecovered, AbandonedCartSession } from '@/app/utils/cartTracker';
+import { EMAIL_TEMPLATES, fillEmailTemplate, openMailClient, openWhatsAppChat, RecoveryEmailTemplate, sendServerEmail, SENDER_EMAIL } from '@/app/utils/emailService';
+import { getProductOffers, saveProductOffer, saveAllProductOffers, resetAllProductOffers, calculateShoePrice, ProductOffersMap, ShoeOffer } from '@/app/utils/productOffers';
 
 interface DBUser {
   id: string;
@@ -46,13 +51,23 @@ interface DBOrder {
   tracking_number?: string;
 }
 
-// ── Payment Status Categorizer ──────────────────────────────────────────────
+export interface AdminNotification {
+  id: string;
+  type: 'order' | 'payment_paid' | 'payment_cod' | 'payment_unpaid' | 'cart_abandoned';
+  title: string;
+  subtitle: string;
+  timestamp: string;
+  orderId?: string;
+  isRead: boolean;
+}
+
+// ── Payment Status Categorizer (Strict Green = Paid, Red = Not Paid, Yellow = COD) ──
 export function getPaymentClassification(paymentStatus?: string, paymentMethod?: string, orderStatus?: string) {
   const pStatus = (paymentStatus || '').toLowerCase().trim();
   const pMethod = (paymentMethod || '').toLowerCase().trim();
   const oStatus = (orderStatus || '').toLowerCase().trim();
 
-  // Cancelled or Failed
+  // Cancelled, Failed, or Unpaid -> Red
   if (
     oStatus === 'cancelled' ||
     pStatus === 'failed' ||
@@ -63,16 +78,16 @@ export function getPaymentClassification(paymentStatus?: string, paymentMethod?:
   ) {
     return {
       type: 'cancelled' as const,
-      label: pStatus === 'refunded' ? 'Refunded' : (pStatus === 'failed' ? 'Failed' : 'Cancelled / Unpaid'),
+      label: 'Not Paid',
       color: 'red',
       bgClass: 'bg-rose-50 text-rose-700 border-rose-200',
-      badgeClass: 'bg-rose-100 text-rose-800 border border-rose-300',
+      badgeClass: 'bg-rose-100 text-rose-800 border border-rose-300 font-extrabold',
       dotClass: 'bg-rose-500',
       icon: XCircle,
     };
   }
 
-  // Cash on Delivery
+  // Cash on Delivery -> Yellow
   if (
     pStatus === 'cod_pending' ||
     pStatus === 'cod' ||
@@ -82,22 +97,22 @@ export function getPaymentClassification(paymentStatus?: string, paymentMethod?:
   ) {
     return {
       type: 'cod' as const,
-      label: 'COD (Pending Pay)',
+      label: 'COD',
       color: 'yellow',
       bgClass: 'bg-amber-50 text-amber-700 border-amber-200',
-      badgeClass: 'bg-amber-100 text-amber-800 border border-amber-300',
+      badgeClass: 'bg-amber-100 text-amber-800 border border-amber-300 font-extrabold',
       dotClass: 'bg-amber-500',
       icon: Clock,
     };
   }
 
-  // Completed / Paid
+  // Prepaid / Completed -> Green
   return {
     type: 'paid' as const,
-    label: 'Payment Completed',
+    label: 'Paid',
     color: 'green',
     bgClass: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    badgeClass: 'bg-emerald-100 text-emerald-800 border border-emerald-300',
+    badgeClass: 'bg-emerald-100 text-emerald-800 border border-emerald-300 font-extrabold',
     dotClass: 'bg-emerald-500',
     icon: CheckCircle2,
   };
@@ -132,6 +147,53 @@ function AdminDashboard() {
   const [users, setUsers] = useState<DBUser[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Notifications State & Sound Chime
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [readNotifIds, setReadNotifIds] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('topsun_read_notifs') || '[]'); } catch { return []; }
+  });
+  const prevOrdersCountRef = useRef<number>(0);
+
+  const playNotificationSound = () => {
+    if (!soundEnabled) return;
+    try {
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
+      osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.15); // A5
+      gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.35);
+    } catch {}
+  };
+
+  // Abandoned Carts & Customer Management State
+  const [customerSubTab, setCustomerSubTab] = useState<'all' | 'abandoned'>('all');
+  const [abandonedCarts, setAbandonedCarts] = useState<AbandonedCartSession[]>([]);
+  const [showRecoveryModal, setShowRecoveryModal] = useState(false);
+  const [selectedRecoverySession, setSelectedRecoverySession] = useState<{
+    customerName: string;
+    email?: string;
+    phone?: string;
+    itemsSummary: string;
+    itemCount: number;
+    cartTotal: number;
+  } | null>(null);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>(EMAIL_TEMPLATES[0].id);
+  const [customSubject, setCustomSubject] = useState<string>('');
+  const [customBody, setCustomBody] = useState<string>('');
+  const [sendingDirectEmail, setSendingDirectEmail] = useState<boolean>(false);
+
+  // Product Offers State
+  const [productOffers, setProductOffers] = useState<ProductOffersMap>(getProductOffers);
+  const [savingOffers, setSavingOffers] = useState(false);
+
   // Filters & Search
   const [searchQuery, setSearchQuery] = useState('');
   const [paymentFilter, setPaymentFilter] = useState<'all' | 'paid' | 'cod' | 'cancelled'>('all');
@@ -151,13 +213,23 @@ function AdminDashboard() {
   const [bannerTargetDate, setBannerTargetDate] = useState(bannerConfig.targetDate.slice(0, 16));
   const [bannerEnabled, setBannerEnabled] = useState(bannerConfig.enabled);
   const [savingBanner, setSavingBanner] = useState(false);
+  const [broadcastingBanner, setBroadcastingBanner] = useState(false);
+  const [lastBroadcastCount, setLastBroadcastCount] = useState(0);
+
+  // Bulk discount for "Select All" in Shoe Offers
+  const [bulkDiscountPercent, setBulkDiscountPercent] = useState<number>(20);
 
   useEffect(() => {
     fetchData();
+    // Auto-refresh orders every 30 seconds for live order & payment updates
+    const timer = setInterval(() => {
+      fetchData(false);
+    }, 30000);
+    return () => clearInterval(timer);
   }, []);
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async (showLoadingSpinner: boolean = true) => {
+    if (showLoadingSpinner) setLoading(true);
     try {
       // 1. Fetch Orders
       const { data: allOrders, error: ordersErr } = await supabase
@@ -168,7 +240,21 @@ function AdminDashboard() {
       if (ordersErr) throw ordersErr;
 
       const fetchedOrders = (allOrders || []) as DBOrder[];
+
+      // Check for new orders to trigger chime & alert
+      if (prevOrdersCountRef.current > 0 && fetchedOrders.length > prevOrdersCountRef.current) {
+        const newCount = fetchedOrders.length - prevOrdersCountRef.current;
+        playNotificationSound();
+        toast.success(`🎉 ${newCount} New Order${newCount > 1 ? 's' : ''} Received!`, {
+          description: `Order #${fetchedOrders[0].order_number || fetchedOrders[0].id.slice(0, 8)} placed recently.`,
+        });
+      }
+      prevOrdersCountRef.current = fetchedOrders.length;
       setOrders(fetchedOrders);
+
+      // Refresh tracked carts & product offers
+      setAbandonedCarts(getTrackedCarts());
+      setProductOffers(getProductOffers());
 
       // 2. Fetch or Map Users
       const usersMap = new Map<string, DBUser>();
@@ -472,8 +558,8 @@ function AdminDashboard() {
     toast.success('Orders exported to CSV successfully!');
   };
 
-  // ── Save Sales Banner ─────────────────────────────────────────────────────
-  const handleSaveBanner = (e: React.FormEvent) => {
+  // ── Save Sales Banner + Broadcast to All Customers ───────────────────────
+  const handleSaveBanner = async (e: React.FormEvent) => {
     e.preventDefault();
     setSavingBanner(true);
     try {
@@ -486,11 +572,366 @@ function AdminDashboard() {
       saveSalesBannerSettings(updated);
       setBannerConfig(updated);
       toast.success('Sales offer & countdown updated successfully across website!');
+
+      // ── Broadcast to all customers if banner is enabled ───────────────────
+      if (updated.enabled) {
+        setBroadcastingBanner(true);
+        const offerEndDate = new Date(updated.targetDate).toLocaleDateString('en-IN', {
+          day: 'numeric', month: 'long', year: 'numeric',
+        });
+        const campaignTitle = updated.title;
+        const campaignSubtext = updated.highlightText;
+
+        // Collect unique customers from orders
+        const emailsSent = new Set<string>();
+        const phonesToBroadcast: string[] = [];
+        let dispatchCount = 0;
+
+        for (const order of orders) {
+          const addr = order.shipping_address || {};
+          const email = addr.email || '';
+          const phone = addr.phone || '';
+          const name = addr.fullName || 'Valued Customer';
+
+          // Send email to unique addresses
+          if (email && email.includes('@') && !emailsSent.has(email)) {
+            emailsSent.add(email);
+            const htmlBody = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>${campaignTitle}</title></head>
+<body style="margin:0;padding:0;background:#f4f4f5;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:32px 12px;">
+  <tr><td align="center">
+    <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border-radius:20px;overflow:hidden;border:1px solid #e4e4e7;box-shadow:0 8px 32px rgba(0,0,0,0.08);">
+      <!-- Header -->
+      <tr>
+        <td style="background:linear-gradient(135deg,#009FE3 0%,#0077B6 100%);padding:28px 32px;text-align:center;">
+          <p style="margin:0 0 6px;color:rgba(255,255,255,0.85);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;">TOPSUN Performance Footwear</p>
+          <h1 style="margin:0;color:#ffffff;font-size:26px;font-weight:900;letter-spacing:-0.5px;">${campaignTitle}</h1>
+          <p style="margin:8px 0 0;color:rgba(255,255,255,0.9);font-size:13px;font-weight:600;">${campaignSubtext}</p>
+        </td>
+      </tr>
+      <!-- Countdown Badge -->
+      <tr>
+        <td style="padding:0;">
+          <div style="background:#FFF9EC;border-bottom:2px dashed #FCD34D;padding:14px 32px;text-align:center;">
+            <p style="margin:0;color:#92400E;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">⚡ Sale Ends: ${offerEndDate}</p>
+          </div>
+        </td>
+      </tr>
+      <!-- Body -->
+      <tr>
+        <td style="padding:32px 32px 24px;">
+          <p style="margin:0 0 16px;color:#18181b;font-size:16px;font-weight:700;">Hi ${name},</p>
+          <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.75;">We are excited to announce our latest campaign <strong style="color:#009FE3;">${campaignTitle}</strong> is now LIVE on the TOPSUN store!</p>
+          <p style="margin:0 0 24px;color:#374151;font-size:14px;line-height:1.75;">Shop our complete collection of lightweight running shoes, casual sneakers, and performance footwear — all crafted with honeycomb grip soles, breathable mesh uppers, and cloud cushioning technology.</p>
+          <!-- Features Grid -->
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+            <tr>
+              <td width="33%" style="text-align:center;padding:12px 8px;background:#F0FDF4;border-radius:12px;margin:4px;">
+                <p style="margin:0;font-size:18px;">🚚</p>
+                <p style="margin:4px 0 0;color:#166534;font-size:11px;font-weight:700;">Free Delivery<br/>Pan India</p>
+              </td>
+              <td width="2%"></td>
+              <td width="31%" style="text-align:center;padding:12px 8px;background:#EFF6FF;border-radius:12px;">
+                <p style="margin:0;font-size:18px;">💎</p>
+                <p style="margin:4px 0 0;color:#1D4ED8;font-size:11px;font-weight:700;">Premium Quality<br/>Handcrafted</p>
+              </td>
+              <td width="2%"></td>
+              <td width="32%" style="text-align:center;padding:12px 8px;background:#FFF7ED;border-radius:12px;">
+                <p style="margin:0;font-size:18px;">↩️</p>
+                <p style="margin:4px 0 0;color:#9A3412;font-size:11px;font-weight:700;">7-Day Easy<br/>Returns</p>
+              </td>
+            </tr>
+          </table>
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td align="center">
+                <a href="https://topsun.in/shop" target="_blank" style="display:inline-block;background:linear-gradient(135deg,#009FE3,#0077B6);color:#ffffff;font-size:14px;font-weight:800;text-decoration:none;padding:16px 40px;border-radius:12px;letter-spacing:0.5px;text-transform:uppercase;">Shop Now →</a>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+      <!-- Footer -->
+      <tr>
+        <td style="background:#fafafa;padding:20px 32px;border-top:1px solid #e4e4e7;text-align:center;font-size:11px;color:#71717a;line-height:1.6;">
+          <p style="margin:0 0 4px;font-weight:700;color:#27272a;">INTELAGROW PVT. LTD. · TOPSUN Footwear</p>
+          <p style="margin:0 0 4px;">A/90 NSB Road, Raniganj, Paschim Bardhaman – 713358, West Bengal</p>
+          <p style="margin:0;">WhatsApp: +91 7485006659 · <a href="https://topsun.in" style="color:#009FE3;">topsun.in</a></p>
+          <p style="margin:8px 0 0;color:#a1a1aa;font-size:10px;">You received this email as a TOPSUN customer. Sent from noreply@topsun.in</p>
+        </td>
+      </tr>
+    </table>
+  </td></tr>
+</table>
+</body></html>`;
+
+            try {
+              await sendServerEmail({
+                to: email,
+                subject: `🔥 ${campaignTitle} – TOPSUN Performance Footwear`,
+                body: htmlBody,
+                customer_name: name,
+                type: 'sale_alert',
+              });
+              dispatchCount++;
+            } catch {}
+          }
+
+          // Collect unique phones for WhatsApp
+          if (phone && phone !== 'N/A' && phone.length >= 10) {
+            const clean = phone.replace(/\D/g, '');
+            const full = clean.startsWith('91') ? clean : `91${clean.slice(-10)}`;
+            if (!phonesToBroadcast.includes(full)) {
+              phonesToBroadcast.push(full);
+            }
+          }
+        }
+
+        setLastBroadcastCount(dispatchCount);
+
+        // Open WhatsApp broadcast message (first customer or general)
+        if (phonesToBroadcast.length > 0) {
+          const waMsg = encodeURIComponent(
+            `🎉 *${campaignTitle}* is LIVE on TOPSUN!\n\n` +
+            `${campaignSubtext}\n\n` +
+            `⚡ Shop Now: https://topsun.in/shop\n\n` +
+            `🚚 Free Delivery across India\n💎 Premium Quality Footwear\n↩️ 7-Day Easy Returns\n\n` +
+            `*Offer ends: ${offerEndDate}*\n\n` +
+            `– Team TOPSUN Footwear`
+          );
+          // Open WhatsApp for the first number as a sample; admin can copy message
+          window.open(`https://wa.me/?text=${waMsg}`, '_blank');
+        }
+
+        toast.success(
+          `📢 Broadcast sent! ${dispatchCount} email${dispatchCount !== 1 ? 's' : ''} dispatched + WhatsApp message prepared.`,
+          { duration: 6000 }
+        );
+        setBroadcastingBanner(false);
+      }
     } catch (err: any) {
       toast.error('Failed to update banner: ' + err.message);
+      setBroadcastingBanner(false);
     } finally {
       setSavingBanner(false);
     }
+  };
+
+  // ── Preset Date for Sales Banner ────────────────────────────────────────
+  const setBannerPresetHours = (hours: number) => {
+    const target = new Date(Date.now() + hours * 3600 * 1000);
+    setBannerTargetDate(target.toISOString().slice(0, 16));
+  };
+
+  // ── Real-Time Notifications Feed ─────────────────────────────────────────
+  const notifications = useMemo<AdminNotification[]>(() => {
+    const list: AdminNotification[] = [];
+
+    // Order & Payment notifications
+    orders.forEach(o => {
+      const pClass = getPaymentClassification(o.payment_status, o.payment_method, o.order_status);
+      const name = o.shipping_address?.fullName || 'Customer';
+      const orderNum = o.order_number || o.id.slice(0, 8);
+      const amount = `₹${((o.total_amount || 0) / 100).toLocaleString('en-IN')}`;
+
+      if (pClass.type === 'paid') {
+        list.push({
+          id: `notif_paid_${o.id}`,
+          type: 'payment_paid',
+          title: `Prepaid Order Paid (${amount})`,
+          subtitle: `${name} paid for order #${orderNum} via ${o.payment_method?.toUpperCase() || 'ONLINE'}`,
+          timestamp: o.created_at,
+          orderId: o.id,
+          isRead: readNotifIds.includes(`notif_paid_${o.id}`),
+        });
+      } else if (pClass.type === 'cod') {
+        list.push({
+          id: `notif_cod_${o.id}`,
+          type: 'payment_cod',
+          title: `New COD Order Placed (${amount})`,
+          subtitle: `${name} placed Cash on Delivery order #${orderNum}`,
+          timestamp: o.created_at,
+          orderId: o.id,
+          isRead: readNotifIds.includes(`notif_cod_${o.id}`),
+        });
+      } else {
+        list.push({
+          id: `notif_unpaid_${o.id}`,
+          type: 'payment_unpaid',
+          title: `Payment Not Paid / Failed (${amount})`,
+          subtitle: `Order #${orderNum} by ${name} marked as unpaid or failed`,
+          timestamp: o.created_at,
+          orderId: o.id,
+          isRead: readNotifIds.includes(`notif_unpaid_${o.id}`),
+        });
+      }
+    });
+
+    // Cart Abandonment notifications
+    abandonedCarts.forEach(c => {
+      list.push({
+        id: `notif_cart_${c.id}`,
+        type: 'cart_abandoned',
+        title: `Cart Abandoned (₹${c.totalAmount.toLocaleString('en-IN')})`,
+        subtitle: `${c.customerName} left ${c.items.length} item(s) in cart at ${c.stage}`,
+        timestamp: c.lastActive,
+        isRead: readNotifIds.includes(`notif_cart_${c.id}`),
+      });
+    });
+
+    return list.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }, [orders, abandonedCarts, readNotifIds]);
+
+  const unreadCount = useMemo(() => {
+    return notifications.filter(n => !n.isRead).length;
+  }, [notifications]);
+
+  const markAllNotificationsRead = () => {
+    const allIds = notifications.map(n => n.id);
+    setReadNotifIds(allIds);
+    try { localStorage.setItem('topsun_read_notifs', JSON.stringify(allIds)); } catch {}
+  };
+
+  const markSingleNotificationRead = (id: string) => {
+    if (readNotifIds.includes(id)) return;
+    const updated = [...readNotifIds, id];
+    setReadNotifIds(updated);
+    try { localStorage.setItem('topsun_read_notifs', JSON.stringify(updated)); } catch {}
+  };
+
+  // ── Recovery Message Handlers ──────────────────────────────────────────
+  const handleOpenRecoveryModal = (data: {
+    customerName: string;
+    email?: string;
+    phone?: string;
+    itemsSummary: string;
+    itemCount: number;
+    cartTotal: number;
+  }) => {
+    setSelectedRecoverySession(data);
+    const tmpl = EMAIL_TEMPLATES[0];
+    setSelectedTemplateId(tmpl.id);
+    const filled = fillEmailTemplate(tmpl, data);
+    setCustomSubject(filled.subject);
+    setCustomBody(filled.body);
+    setShowRecoveryModal(true);
+  };
+
+  const handleTemplateChange = (templateId: string) => {
+    setSelectedTemplateId(templateId);
+    const tmpl = EMAIL_TEMPLATES.find(t => t.id === templateId) || EMAIL_TEMPLATES[0];
+    if (selectedRecoverySession) {
+      const filled = fillEmailTemplate(tmpl, selectedRecoverySession);
+      setCustomSubject(filled.subject);
+      setCustomBody(filled.body);
+    }
+  };
+
+  const handleSendRecoveryEmail = () => {
+    if (!selectedRecoverySession?.email || selectedRecoverySession.email === 'N/A') {
+      toast.error('No customer email address on file.');
+      return;
+    }
+    openMailClient(selectedRecoverySession.email, customSubject, customBody);
+    toast.success(`Prepared recovery email for ${selectedRecoverySession.email}`);
+  };
+
+  const handleSendDirectServerEmail = async () => {
+    if (!selectedRecoverySession?.email || selectedRecoverySession.email === 'N/A') {
+      toast.error('No customer email address on file.');
+      return;
+    }
+    setSendingDirectEmail(true);
+    try {
+      const res = await sendServerEmail({
+        to: selectedRecoverySession.email,
+        subject: customSubject,
+        body: customBody,
+        customer_name: selectedRecoverySession.customerName,
+        type: 'cart_recovery',
+      });
+
+      if (res.success) {
+        toast.success(`Email dispatched from ${SENDER_EMAIL} to ${selectedRecoverySession.email}`);
+        setShowRecoveryModal(false);
+      } else {
+        toast.error(`Hostinger server: ${res.error || 'Opening mail client instead'}`);
+        openMailClient(selectedRecoverySession.email, customSubject, customBody);
+      }
+    } catch (err: any) {
+      toast.error('Failed to dispatch email: ' + err.message);
+      openMailClient(selectedRecoverySession.email, customSubject, customBody);
+    } finally {
+      setSendingDirectEmail(false);
+    }
+  };
+
+  const handleSendRecoveryWhatsApp = () => {
+    if (!selectedRecoverySession?.phone || selectedRecoverySession.phone === 'N/A') {
+      toast.error('No customer mobile number on file.');
+      return;
+    }
+    openWhatsAppChat(selectedRecoverySession.phone, `${customSubject}\n\n${customBody}`);
+    toast.success(`Opened WhatsApp chat for +91 ${selectedRecoverySession.phone}`);
+  };
+
+  // ── Product Offers Handlers ─────────────────────────────────────────────
+  const handleUpdateShoeOffer = (shoeId: number, partial: Partial<ShoeOffer>) => {
+    setProductOffers(prev => ({
+      ...prev,
+      [shoeId]: {
+        ...prev[shoeId],
+        ...partial,
+        shoeId,
+      },
+    }));
+  };
+
+  const handleSaveShoeOffers = () => {
+    setSavingOffers(true);
+    try {
+      saveAllProductOffers(productOffers);
+      toast.success('Shoe promotional offers updated and broadcasted storewide!');
+    } catch (err: any) {
+      toast.error('Failed to save offers: ' + err.message);
+    } finally {
+      setSavingOffers(false);
+    }
+  };
+
+  const handleResetShoeOffers = () => {
+    resetAllProductOffers();
+    setProductOffers(getProductOffers());
+    toast.success('All shoes reset to their original selling prices!');
+  };
+
+  // ── Select All Shoes — Apply Bulk Discount ────────────────────────────────
+  const handleSelectAllShoes = (pct: number) => {
+    const updated: ProductOffersMap = {};
+    PRODUCTS.forEach(p => {
+      updated[p.id] = {
+        shoeId: p.id,
+        discountPercent: pct,
+        enabled: pct > 0,
+        customPrice: undefined,
+      };
+    });
+    setProductOffers(updated);
+    toast.success(`All ${PRODUCTS.length} shoes set to ${pct}% OFF from original price!`);
+  };
+
+  // ── Toggle Enabled on All Shoes ────────────────────────────────────────────
+  const handleToggleAllShoes = (enabled: boolean) => {
+    setProductOffers(prev => {
+      const updated: ProductOffersMap = {};
+      PRODUCTS.forEach(p => {
+        updated[p.id] = { ...(prev[p.id] || { shoeId: p.id, discountPercent: 0 }), shoeId: p.id, enabled };
+      });
+      return updated;
+    });
+    toast.success(enabled ? `All ${PRODUCTS.length} shoes offers ENABLED` : `All ${PRODUCTS.length} shoes offers DISABLED`);
   };
 
   const handleLogout = () => {
@@ -532,8 +973,141 @@ function AdminDashboard() {
 
           {/* Actions & Profile */}
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Real-time Notifications Bell with Badge & Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setShowNotifications(!showNotifications)}
+                className={`p-2 sm:px-3 sm:py-2 text-xs font-semibold rounded-xl border transition-all flex items-center gap-1.5 cursor-pointer relative ${
+                  showNotifications
+                    ? 'bg-[#009FE3] text-white border-[#009FE3]'
+                    : 'text-gray-700 bg-gray-50 hover:bg-gray-100 border-gray-200'
+                }`}
+                title="Notifications"
+              >
+                <Bell size={16} className={unreadCount > 0 ? 'text-amber-500 animate-bounce' : ''} />
+                <span className="hidden sm:inline">Notifications</span>
+                {unreadCount > 0 && (
+                  <span className="w-5 h-5 bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center -ml-0.5 sm:ml-0.5">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Notifications Dropdown Drawer */}
+              <AnimatePresence>
+                {showNotifications && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                    className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 overflow-hidden"
+                  >
+                    <div className="p-3.5 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Bell size={16} className="text-[#009FE3]" />
+                        <span className="text-xs font-bold text-gray-900">Live Alerts ({notifications.length})</span>
+                        {unreadCount > 0 && (
+                          <span className="px-1.5 py-0.5 text-[10px] bg-amber-100 text-amber-800 font-bold rounded-md">
+                            {unreadCount} new
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setSoundEnabled(!soundEnabled)}
+                          className={`p-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                            soundEnabled ? 'text-emerald-700 bg-emerald-50' : 'text-gray-400 bg-gray-100'
+                          }`}
+                          title={soundEnabled ? 'Order sound alert ON' : 'Order sound alert muted'}
+                        >
+                          {soundEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />}
+                        </button>
+                        {unreadCount > 0 && (
+                          <button
+                            onClick={markAllNotificationsRead}
+                            className="text-[11px] text-[#009FE3] hover:underline font-bold"
+                          >
+                            Mark read
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="max-h-80 overflow-y-auto divide-y divide-gray-100 text-xs">
+                      {notifications.length === 0 ? (
+                        <div className="p-8 text-center text-gray-400">
+                          <CheckCircle2 size={24} className="mx-auto text-gray-300 mb-1" />
+                          No new notifications
+                        </div>
+                      ) : (
+                        notifications.slice(0, 30).map(n => {
+                          const isPaid = n.type === 'payment_paid';
+                          const isCod = n.type === 'payment_cod';
+                          const isCart = n.type === 'cart_abandoned';
+                          const isUnpaid = n.type === 'payment_unpaid';
+
+                          return (
+                            <div
+                              key={n.id}
+                              onClick={() => {
+                                markSingleNotificationRead(n.id);
+                                if (n.orderId) {
+                                  const ord = orders.find(o => o.id === n.orderId);
+                                  if (ord) viewReceipt(ord);
+                                  setShowNotifications(false);
+                                } else if (isCart) {
+                                  setActiveTab('customers');
+                                  setCustomerSubTab('abandoned');
+                                  setShowNotifications(false);
+                                }
+                              }}
+                              className={`p-3 transition-colors cursor-pointer hover:bg-gray-50 flex items-start gap-2.5 ${
+                                !n.isRead ? 'bg-blue-50/40' : ''
+                              }`}
+                            >
+                              <div className="mt-0.5 shrink-0">
+                                {isPaid && (
+                                  <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-[10px]">
+                                    ✓
+                                  </div>
+                                )}
+                                {isCod && (
+                                  <div className="w-6 h-6 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-[10px]">
+                                    COD
+                                  </div>
+                                )}
+                                {isUnpaid && (
+                                  <div className="w-6 h-6 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center font-bold text-[10px]">
+                                    ✕
+                                  </div>
+                                )}
+                                {isCart && (
+                                  <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-[10px]">
+                                    🛒
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between">
+                                  <p className="font-bold text-gray-900 truncate text-xs">{n.title}</p>
+                                  <span className="text-[10px] text-gray-400 shrink-0 ml-1">
+                                    {format(new Date(n.timestamp), 'hh:mm a')}
+                                  </span>
+                                </div>
+                                <p className="text-gray-600 text-[11px] leading-snug mt-0.5 line-clamp-2">{n.subtitle}</p>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
             <button
-              onClick={fetchData}
+              onClick={() => fetchData(true)}
               disabled={loading}
               className="p-2 sm:px-3 sm:py-2 text-xs font-semibold text-gray-700 hover:text-[#009FE3] bg-gray-50 hover:bg-[#009FE3]/10 border border-gray-200 rounded-xl transition-all flex items-center gap-1.5 active:scale-95 disabled:opacity-50"
               title="Refresh Data"
@@ -860,6 +1434,14 @@ function AdminDashboard() {
                         </p>
 
                         <button
+                          onClick={() => openInvoicePrintWindow(o)}
+                          className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold rounded-xl border border-emerald-200 transition-colors cursor-pointer flex items-center gap-1"
+                          title="Download GST Invoice"
+                        >
+                          <Download size={12} /> Invoice
+                        </button>
+
+                        <button
                           onClick={() => viewReceipt(o)}
                           className="px-3 py-1.5 bg-gray-50 hover:bg-gray-100 text-gray-700 text-xs font-bold rounded-xl border border-gray-200 transition-colors cursor-pointer"
                         >
@@ -1103,6 +1685,16 @@ function AdminDashboard() {
                             </p>
                           </div>
 
+                          {/* Invoice Download Button */}
+                          <button
+                            onClick={() => openInvoicePrintWindow(o)}
+                            className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 active:scale-95 cursor-pointer shadow-xs"
+                            title="Download/Print GST Tax Invoice"
+                          >
+                            <Download size={13} />
+                            <span>Invoice</span>
+                          </button>
+
                           {/* View Details Button */}
                           <button
                             onClick={() => viewReceipt(o)}
@@ -1129,18 +1721,46 @@ function AdminDashboard() {
         {activeTab === 'customers' && (
           <div className="space-y-4">
             
-            {/* Header / Search */}
+            {/* Header / Sub-Tab Switcher & Search */}
             <div className="bg-white rounded-2xl p-5 border border-gray-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h3 className="text-base font-bold text-gray-900">Customer Directory ({users.length})</h3>
-                <p className="text-xs text-gray-500 mt-0.5">All registered users and guest checkout clients</p>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setCustomerSubTab('all')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      customerSubTab === 'all'
+                        ? 'bg-[#121518] text-white shadow-xs'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    All Customers ({users.length})
+                  </button>
+                  <button
+                    onClick={() => setCustomerSubTab('abandoned')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                      customerSubTab === 'abandoned'
+                        ? 'bg-[#009FE3] text-white shadow-xs'
+                        : 'bg-blue-50 text-[#009FE3] hover:bg-blue-100'
+                    }`}
+                  >
+                    <span>🛒 Abandoned Carts</span>
+                    <span className="px-1.5 py-0.2 bg-white/20 rounded-full text-[10px]">
+                      {abandonedCarts.length}
+                    </span>
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-1.5">
+                  {customerSubTab === 'all'
+                    ? 'Registered customers and verified buyers directory'
+                    : 'Shoppers who added shoes to cart or left during checkout'}
+                </p>
               </div>
 
               <div className="relative w-full sm:w-72">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                 <input
                   type="text"
-                  placeholder="Search customer name or email..."
+                  placeholder="Search name, phone, or email..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   className="w-full pl-9 pr-4 py-2 rounded-xl bg-gray-50 border border-gray-200 text-xs focus:ring-2 focus:ring-[#009FE3] outline-none"
@@ -1148,141 +1768,431 @@ function AdminDashboard() {
               </div>
             </div>
 
-            {/* Customer Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {users
-                .filter(u =>
-                  u.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                  u.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                  u.phone?.includes(searchQuery)
-                )
-                .map(u => (
-                  <div key={u.id} className="bg-white rounded-2xl p-5 border border-gray-200/80 shadow-xs flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="w-12 h-12 rounded-full bg-[#009FE3]/10 text-[#009FE3] font-black text-base flex items-center justify-center flex-shrink-0">
-                          {u.full_name?.split(' ').map((n: string) => n[0]).slice(0, 2).join('').toUpperCase() || u.email?.[0]?.toUpperCase() || 'U'}
+            {/* Sub-Tab 1: All Registered Customers */}
+            {customerSubTab === 'all' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {users
+                  .filter(u =>
+                    u.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    u.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    u.phone?.includes(searchQuery)
+                  )
+                  .map(u => (
+                    <div key={u.id} className="bg-white rounded-2xl p-5 border border-gray-200/80 shadow-xs flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="w-12 h-12 rounded-full bg-[#009FE3]/10 text-[#009FE3] font-black text-base flex items-center justify-center flex-shrink-0">
+                            {u.full_name?.split(' ').map((n: string) => n[0]).slice(0, 2).join('').toUpperCase() || u.email?.[0]?.toUpperCase() || 'U'}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <h4 className="font-bold text-gray-900 text-sm truncate">{u.full_name || 'Customer'}</h4>
+                            <p className="text-xs text-gray-500 truncate">{u.email}</p>
+                            <span className={`inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              u.provider === 'google' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-[#009FE3]'
+                            }`}>
+                              {u.provider === 'google' ? 'Google Auth' : 'Phone / Email'}
+                            </span>
+                          </div>
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <h4 className="font-bold text-gray-900 text-sm truncate">{u.full_name || 'Guest User'}</h4>
-                          <p className="text-xs text-gray-500 truncate">{u.email}</p>
-                          <span className={`inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                            u.provider === 'google' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-[#009FE3]'
-                          }`}>
-                            {u.provider === 'google' ? 'Google Auth' : 'Email / Mobile'}
-                          </span>
+
+                        <div className="grid grid-cols-2 gap-2 py-3 border-y border-gray-100 text-xs">
+                          <div>
+                            <p className="text-[10px] text-gray-400 font-bold uppercase">Orders Placed</p>
+                            <p className="font-bold text-gray-900">{u.orders_count || 1}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-gray-400 font-bold uppercase">Lifetime Spend</p>
+                            <p className="font-bold text-emerald-700">₹{(u.total_spent || 0).toLocaleString('en-IN')}</p>
+                          </div>
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-2 py-3 border-y border-gray-100 text-xs">
-                        <div>
-                          <p className="text-[10px] text-gray-400 font-bold uppercase">Orders Placed</p>
-                          <p className="font-bold text-gray-900">{u.orders_count || 1}</p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] text-gray-400 font-bold uppercase">Lifetime Spend</p>
-                          <p className="font-bold text-emerald-700">₹{(u.total_spent || 0).toLocaleString('en-IN')}</p>
+                      <div className="mt-4 pt-2 flex items-center justify-between gap-2 border-t border-gray-100 text-xs">
+                        <button
+                          onClick={() => handleOpenRecoveryModal({
+                            customerName: u.full_name || 'Customer',
+                            email: u.email !== 'N/A' ? u.email : undefined,
+                            phone: u.phone !== 'N/A' ? u.phone : undefined,
+                            itemsSummary: 'TOPSUN footwear collection',
+                            itemCount: 1,
+                            cartTotal: 4000,
+                          })}
+                          className="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-[#009FE3] rounded-lg font-bold text-[11px] flex items-center gap-1 cursor-pointer transition-colors"
+                        >
+                          <Send size={12} /> Send Offer
+                        </button>
+
+                        <div className="flex items-center gap-2">
+                          {u.phone && u.phone !== 'N/A' && (
+                            <a
+                              href={`https://wa.me/91${u.phone.replace(/[^0-9]/g, '')}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-emerald-600 hover:text-emerald-700 font-bold flex items-center gap-1 p-1"
+                              title="Chat on WhatsApp"
+                            >
+                              <MessageSquare size={14} />
+                            </a>
+                          )}
+                          {u.email && u.email !== 'N/A' && (
+                            <a
+                              href={`mailto:${u.email}`}
+                              className="text-gray-600 hover:text-gray-900 font-bold flex items-center gap-1 p-1"
+                              title="Send Email"
+                            >
+                              <Mail size={14} />
+                            </a>
+                          )}
                         </div>
                       </div>
                     </div>
+                  ))}
+              </div>
+            )}
 
-                    <div className="mt-4 pt-1 flex items-center justify-between text-xs">
-                      {u.phone && u.phone !== 'N/A' ? (
-                        <a
-                          href={`https://wa.me/91${u.phone.replace(/[^0-9]/g, '')}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-emerald-600 hover:text-emerald-700 font-bold flex items-center gap-1"
-                        >
-                          <MessageSquare size={13} /> WhatsApp
-                        </a>
-                      ) : (
-                        <span className="text-gray-400 text-[11px]">No phone on file</span>
-                      )}
-
-                      {u.email && u.email !== 'N/A' && (
-                        <a
-                          href={`mailto:${u.email}`}
-                          className="text-[#009FE3] hover:underline font-bold flex items-center gap-1"
-                        >
-                          <Mail size={13} /> Email
-                        </a>
-                      )}
+            {/* Sub-Tab 2: Abandoned Carts & Checkout Drop-offs */}
+            {customerSubTab === 'abandoned' && (
+              <div className="space-y-3">
+                {abandonedCarts.length === 0 ? (
+                  <div className="bg-white rounded-2xl p-12 text-center border border-gray-200 shadow-xs">
+                    <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-3">
+                      ✓
                     </div>
+                    <h4 className="font-bold text-gray-900 text-base">No Abandoned Carts Detected</h4>
+                    <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
+                      All shoppers who added items have completed their orders, or no pending sessions are active.
+                    </p>
                   </div>
-                ))}
-            </div>
+                ) : (
+                  abandonedCarts.map(cartSession => {
+                    const itemsSummary = cartSession.items.map(i => `${i.name} (UK ${i.size})`).join(', ');
+
+                    return (
+                      <div
+                        key={cartSession.id}
+                        className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-200 shadow-xs hover:border-gray-300 transition-all"
+                      >
+                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                          <div className="flex items-start gap-3">
+                            <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-lg shrink-0">
+                              🛒
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h4 className="font-bold text-gray-900 text-sm">{cartSession.customerName}</h4>
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 uppercase tracking-wider">
+                                  Left at {cartSession.stage === 'cart' ? 'Cart Drawer' : 'Checkout Form'}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-3 text-xs text-gray-500 mt-1 flex-wrap">
+                                <span>{cartSession.email || 'Email not provided'}</span>
+                                {cartSession.phone && <span>• Phone: +91 {cartSession.phone}</span>}
+                                <span>• Last Active: {format(new Date(cartSession.lastActive), 'MMM dd, hh:mm a')}</span>
+                              </div>
+
+                              {/* Items preview in cart */}
+                              <div className="flex items-center gap-2 mt-2.5 flex-wrap">
+                                {cartSession.items.map((item, idx) => (
+                                  <div
+                                    key={idx}
+                                    className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-xs"
+                                  >
+                                    <span className="font-bold text-gray-800">{item.name}</span>
+                                    <span className="text-gray-500 text-[10px]">(UK {item.size} • Qty {item.quantity})</span>
+                                    <span className="font-bold text-[#009FE3] ml-1">₹{item.price.toLocaleString('en-IN')}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between lg:justify-end gap-3 border-t lg:border-t-0 pt-3 lg:pt-0 border-gray-100">
+                            <div className="text-right">
+                              <p className="text-xs text-gray-400 font-bold uppercase">Cart Value</p>
+                              <p className="text-base sm:text-lg font-black text-gray-900">
+                                ₹{cartSession.totalAmount.toLocaleString('en-IN')}
+                              </p>
+                            </div>
+
+                            <button
+                              onClick={() => handleOpenRecoveryModal({
+                                customerName: cartSession.customerName,
+                                email: cartSession.email,
+                                phone: cartSession.phone,
+                                itemsSummary,
+                                itemCount: cartSession.items.reduce((a, b) => a + (b.quantity || 1), 0),
+                                cartTotal: cartSession.totalAmount,
+                              })}
+                              className="px-4 py-2 bg-[#009FE3] hover:bg-[#008bc5] text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer active:scale-95"
+                            >
+                              <Send size={13} />
+                              <span>Send Recovery Message</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            )}
 
           </div>
         )}
 
         {/* ══════════════════════════════════════════════════════════════════ */}
-        {/* TAB 4: PRODUCTS CATALOG                                           */}
+        {/* TAB 4: PRODUCTS & PROMOTIONAL OFFER MANAGER                        */}
         {/* ══════════════════════════════════════════════════════════════════ */}
         {activeTab === 'products' && (
           <div className="space-y-4">
             
-            <div className="bg-white rounded-2xl p-5 border border-gray-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h3 className="text-base font-bold text-gray-900">Products Catalog ({PRODUCTS.length})</h3>
-                <p className="text-xs text-gray-500 mt-0.5">Current inventory items available on the storefront</p>
+            <div className="bg-white rounded-2xl p-5 border border-gray-200/80 shadow-xs space-y-4">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                    <ShoppingBag size={18} className="text-[#009FE3]" /> Shoe Offers & Pricing Manager ({PRODUCTS.length})
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-1 max-w-2xl">
+                    Set discounts on any shoe. All discounts are calculated <strong>strictly from each shoe's Original Price</strong>, not from previously discounted prices.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={handleResetShoeOffers}
+                    className="px-3.5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                  >
+                    Reset to Original Prices
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleSaveShoeOffers}
+                    disabled={savingOffers}
+                    className="px-5 py-2 bg-[#009FE3] hover:bg-[#008bc5] text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50 active:scale-95"
+                  >
+                    <Check size={14} />
+                    <span>{savingOffers ? 'Saving...' : 'Save & Broadcast Offers'}</span>
+                  </button>
+                </div>
               </div>
 
-              <a
-                href="/shop"
-                target="_blank"
-                rel="noreferrer"
-                className="px-4 py-2 bg-gray-900 text-white rounded-xl text-xs font-bold hover:bg-[#009FE3] transition-colors flex items-center gap-1.5 self-start sm:self-auto"
-              >
-                <ExternalLink size={14} /> Open Live Shop
-              </a>
+              {/* ── Select All / Bulk Discount Row ── */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-3 border-t border-gray-100">
+                <div className="flex items-center gap-2 shrink-0">
+                  <Sparkles size={14} className="text-amber-500" />
+                  <span className="text-xs font-bold text-gray-700">Bulk Apply to ALL Shoes:</span>
+                </div>
+
+                {/* Discount % presets */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {[10, 15, 20, 25, 30, 40, 50].map(pct => (
+                    <button
+                      key={pct}
+                      type="button"
+                      onClick={() => setBulkDiscountPercent(pct)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                        bulkDiscountPercent === pct
+                          ? 'bg-amber-500 text-white border-amber-500 shadow-xs'
+                          : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border-gray-200'
+                      }`}
+                    >
+                      {pct}%
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-2 sm:ml-auto flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => handleSelectAllShoes(bulkDiscountPercent)}
+                    className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs active:scale-95"
+                  >
+                    <Percent size={13} />
+                    Select All · {bulkDiscountPercent}% OFF
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleAllShoes(true)}
+                    className="px-3.5 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer active:scale-95"
+                  >
+                    Enable All
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleAllShoes(false)}
+                    className="px-3.5 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-bold rounded-xl transition-colors cursor-pointer active:scale-95"
+                  >
+                    Disable All
+                  </button>
+                </div>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {PRODUCTS.map(p => (
-                <div key={p.id} className="bg-white rounded-2xl p-4 border border-gray-200/80 shadow-xs flex items-center gap-4">
-                  <div className="w-20 h-20 rounded-xl bg-gray-50 p-2 border border-gray-100 flex items-center justify-center flex-shrink-0">
-                    <img src={p.images?.[0]} alt={p.name} className="max-h-full max-w-full object-contain" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#009FE3] bg-[#009FE3]/10 px-2 py-0.5 rounded-md">
-                      {p.category}
-                    </span>
-                    <h4 className="font-bold text-gray-900 text-sm mt-1 truncate">{p.name}</h4>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="font-black text-gray-900 text-sm">₹{p.price.toLocaleString('en-IN')}</span>
-                      {p.originalPrice && (
-                        <span className="text-xs text-gray-400 line-through">₹{p.originalPrice.toLocaleString('en-IN')}</span>
+            {/* Products Offers Cards Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {PRODUCTS.map(p => {
+                const original = p.originalPrice || 4000;
+                const offer = productOffers[p.id] || { shoeId: p.id, discountPercent: 0, enabled: false };
+                const calc = calculateShoePrice(original, offer);
+
+                return (
+                  <div
+                    key={p.id}
+                    className={`bg-white rounded-2xl p-5 border transition-all shadow-xs flex flex-col justify-between ${
+                      offer.enabled ? 'border-[#009FE3] ring-2 ring-[#009FE3]/15' : 'border-gray-200/80'
+                    }`}
+                  >
+                    <div>
+                      {/* Product Header */}
+                      <div className="flex items-start gap-3.5 mb-4">
+                        <div className="w-16 h-16 rounded-xl bg-gray-50 p-2 border border-gray-100 flex items-center justify-center shrink-0">
+                          <img src={p.images?.[0]} alt={p.name} className="max-h-full max-w-full object-contain" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-[#009FE3] bg-[#009FE3]/10 px-2 py-0.5 rounded-md">
+                            {p.category}
+                          </span>
+                          <h4 className="font-bold text-gray-900 text-sm mt-1 truncate">{p.name}</h4>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            Original Base: <strong className="text-gray-800">₹{original.toLocaleString('en-IN')}</strong>
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Offer Configuration Form */}
+                      <div className="space-y-3 pt-3 border-t border-gray-100 text-xs">
+                        
+                        {/* Offer Toggle Switch */}
+                        <div className="flex items-center justify-between">
+                          <label className="font-bold text-gray-700 flex items-center gap-2 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={offer.enabled}
+                              onChange={e => handleUpdateShoeOffer(p.id, { enabled: e.target.checked })}
+                              className="w-4 h-4 rounded text-[#009FE3] cursor-pointer"
+                            />
+                            <span>Active Promotional Offer</span>
+                          </label>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            offer.enabled ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-500'
+                          }`}>
+                            {offer.enabled ? 'ON' : 'OFF'}
+                          </span>
+                        </div>
+
+                        {/* Discount Percent Presets */}
+                        <div>
+                          <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                            Discount From Original (₹{original})
+                          </label>
+                          <div className="grid grid-cols-4 gap-1.5">
+                            {[10, 20, 30, 40, 50, 60].map(pct => (
+                              <button
+                                key={pct}
+                                type="button"
+                                onClick={() => handleUpdateShoeOffer(p.id, { discountPercent: pct, enabled: true, customPrice: undefined })}
+                                className={`py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                                  offer.discountPercent === pct && !offer.customPrice
+                                    ? 'bg-[#009FE3] text-white border-[#009FE3]'
+                                    : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border-gray-200'
+                                }`}
+                              >
+                                {pct}% OFF
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Custom Override Price or Percent Input */}
+                        <div className="grid grid-cols-2 gap-2 pt-1">
+                          <div>
+                            <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Custom %</label>
+                            <input
+                              type="number"
+                              min="0"
+                              max="90"
+                              value={offer.discountPercent || ''}
+                              placeholder="0%"
+                              onChange={e => {
+                                const val = parseInt(e.target.value) || 0;
+                                handleUpdateShoeOffer(p.id, { discountPercent: val, enabled: val > 0, customPrice: undefined });
+                              }}
+                              className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-xs font-bold text-gray-900 outline-none focus:bg-white focus:border-[#009FE3]"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Direct ₹ Price</label>
+                            <input
+                              type="number"
+                              min="500"
+                              max={original}
+                              value={offer.customPrice || ''}
+                              placeholder={`< ₹${original}`}
+                              onChange={e => {
+                                const val = parseInt(e.target.value) || undefined;
+                                handleUpdateShoeOffer(p.id, { customPrice: val, enabled: !!val });
+                              }}
+                              className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-xs font-bold text-gray-900 outline-none focus:bg-white focus:border-[#009FE3]"
+                            />
+                          </div>
+                        </div>
+
+                      </div>
+                    </div>
+
+                    {/* Calculated Price Result Banner */}
+                    <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
+                      <div>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase">Store Selling Price</p>
+                        <div className="flex items-center gap-2">
+                          <span className="text-base font-black text-gray-900">
+                            ₹{calc.price.toLocaleString('en-IN')}
+                          </span>
+                          {calc.hasOffer && (
+                            <span className="text-xs text-gray-400 line-through">
+                              ₹{original.toLocaleString('en-IN')}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {calc.hasOffer ? (
+                        <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                          {calc.badge}
+                        </span>
+                      ) : (
+                        <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-600">
+                          Regular Price
+                        </span>
                       )}
                     </div>
-                    <p className="text-[11px] text-gray-500 mt-1">
-                      Sizes: {p.sizes?.join(', ')}
-                    </p>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
           </div>
         )}
 
         {/* ══════════════════════════════════════════════════════════════════ */}
-        {/* TAB 5: SALES BANNER & COUNTDOWN CONFIGURATOR                       */}
+        {/* TAB 5: TOP OFFER BANNER & COUNTDOWN CONFIGURATOR                   */}
         {/* ══════════════════════════════════════════════════════════════════ */}
         {activeTab === 'marketing' && (
-          <div className="max-w-2xl mx-auto space-y-6">
+          <div className="max-w-3xl mx-auto space-y-6">
             
             <div className="bg-white rounded-2xl p-6 border border-gray-200/80 shadow-xs">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
-                    <Tag size={18} className="text-[#009FE3]" /> Top Offer Bar & Countdown Timer
+                    <Tag size={18} className="text-[#009FE3]" /> Top Offer Announcement & Countdown Timer
                   </h3>
                   <p className="text-xs text-gray-500 mt-1">
-                    Configure the site-wide announcement banner and synchronized countdown clock displayed at the top of every page.
+                    Manage the promotional offer banner and synchronized countdown clock shown at the very top of every website page.
                   </p>
                 </div>
-                <span className={`text-xs font-bold px-3 py-1 rounded-full ${bannerEnabled ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-600'}`}>
+                <span className={`text-xs font-bold px-3 py-1 rounded-full ${bannerEnabled ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-gray-100 text-gray-600'}`}>
                   {bannerEnabled ? '● ACTIVE LIVE' : '○ DISABLED'}
                 </span>
               </div>
@@ -1290,10 +2200,18 @@ function AdminDashboard() {
               {/* Live Preview Box */}
               <div className="mb-6 p-4 rounded-xl bg-[#009FE3] text-white shadow-xs">
                 <p className="text-[10px] uppercase font-bold tracking-widest text-white/80 mb-1">Live Storefront Preview</p>
-                <div className="flex items-center justify-center gap-3 text-xs font-bold text-center">
-                  <span>{bannerTitle || 'Comfort Rush Deals'}</span>
-                  <span>|</span>
-                  <span className="bg-white/20 px-2 py-0.5 rounded">{bannerSubtitle || 'Ends In:'} 08h : 42m : 15s</span>
+                <div className="flex items-center justify-between gap-3 text-xs font-bold flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <Sparkles size={14} className="animate-spin" style={{ animationDuration: '6s' }} />
+                    <span>{bannerTitle || 'Comfort Rush Deals'} {bannerSubtitle || 'Ends In:'}</span>
+                  </div>
+                  <div className="flex items-center gap-1 font-mono text-zinc-900">
+                    <span className="bg-white px-2 py-0.5 rounded text-[11px] font-bold">01 Day</span>
+                    <span className="text-white">:</span>
+                    <span className="bg-white px-2 py-0.5 rounded text-[11px] font-bold">12 Hrs</span>
+                    <span className="text-white">:</span>
+                    <span className="bg-white px-2 py-0.5 rounded text-[11px] font-bold">30 Min</span>
+                  </div>
                 </div>
               </div>
 
@@ -1304,31 +2222,66 @@ function AdminDashboard() {
                     type="text"
                     value={bannerTitle}
                     onChange={(e) => setBannerTitle(e.target.value)}
-                    placeholder="e.g. Comfort Rush Deals, Diwali Flash Sale, Monsoon Rush"
+                    placeholder="e.g. Comfort Rush Deals, Mega Diwali Sale, Weekend Sprint"
                     className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm font-semibold text-gray-900 focus:ring-2 focus:ring-[#009FE3] focus:bg-white outline-none"
                   />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Subtext / Prefix</label>
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Highlight Subtext / Offer</label>
                     <input
                       type="text"
                       value={bannerSubtitle}
                       onChange={(e) => setBannerSubtitle(e.target.value)}
-                      placeholder="e.g. Ends In:, Limited Stock:"
+                      placeholder="e.g. Ends In:, Flat 50% OFF Ends In:"
                       className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm font-semibold text-gray-900 focus:ring-2 focus:ring-[#009FE3] focus:bg-white outline-none"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Countdown Expiry Date & Time</label>
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Countdown Target Date & Time</label>
                     <input
                       type="datetime-local"
                       value={bannerTargetDate}
                       onChange={(e) => setBannerTargetDate(e.target.value)}
                       className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm font-semibold text-gray-900 focus:ring-2 focus:ring-[#009FE3] focus:bg-white outline-none"
                     />
+                  </div>
+                </div>
+
+                {/* Quick Presets */}
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Quick Timer Presets</label>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => setBannerPresetHours(24)}
+                      className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                    >
+                      +24 Hours (Tomorrow)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBannerPresetHours(48)}
+                      className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                    >
+                      +48 Hours (2 Days)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBannerPresetHours(72)}
+                      className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                    >
+                      +3 Days
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBannerPresetHours(168)}
+                      className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                    >
+                      +7 Days (1 Week)
+                    </button>
                   </div>
                 </div>
 
@@ -1340,18 +2293,52 @@ function AdminDashboard() {
                       onChange={(e) => setBannerEnabled(e.target.checked)}
                       className="w-4 h-4 rounded text-[#009FE3] cursor-pointer"
                     />
-                    <span className="text-xs font-bold text-gray-700">Display top banner on website</span>
+                    <span className="text-xs font-bold text-gray-700">Display top banner on store header</span>
                   </label>
 
                   <button
                     type="submit"
-                    disabled={savingBanner}
-                    className="px-6 py-2.5 bg-[#009FE3] hover:bg-[#0088c4] text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50 active:scale-95"
+                    disabled={savingBanner || broadcastingBanner}
+                    className="px-6 py-2.5 bg-[#009FE3] hover:bg-[#0088c4] text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50 active:scale-95 flex items-center gap-1.5"
                   >
-                    {savingBanner ? 'Saving...' : 'Save & Publish Banner'}
+                    {broadcastingBanner ? (
+                      <><Loader size={14} className="animate-spin" /><span>Broadcasting...</span></>
+                    ) : savingBanner ? (
+                      <><Loader size={14} className="animate-spin" /><span>Saving...</span></>
+                    ) : (
+                      <><Send size={14} /><span>Save & Broadcast to Customers</span></>
+                    )}
                   </button>
                 </div>
               </form>
+            </div>
+
+            {/* ── Broadcast Info Card ── */}
+            <div className="bg-gradient-to-br from-[#009FE3]/8 via-white to-emerald-50/60 rounded-2xl p-5 border border-[#009FE3]/20 shadow-xs">
+              <h4 className="text-sm font-bold text-gray-900 flex items-center gap-2 mb-3">
+                <Mail size={15} className="text-[#009FE3]" />
+                What happens when you publish the banner?
+              </h4>
+              <div className="space-y-2.5 text-xs text-gray-600">
+                <div className="flex items-start gap-2.5">
+                  <span className="mt-0.5 w-5 h-5 rounded-full bg-[#009FE3]/15 text-[#009FE3] flex items-center justify-center font-bold text-[10px] shrink-0">1</span>
+                  <p>A <strong>professional HTML sale announcement email</strong> is dispatched from <code className="bg-gray-100 px-1 rounded text-[10px]">noreply@topsun.in</code> to every unique customer email in your order history.</p>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <span className="mt-0.5 w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-[10px] shrink-0">2</span>
+                  <p>A pre-filled <strong>WhatsApp broadcast message</strong> opens in a new tab so you can paste and send to your contact lists instantly.</p>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <span className="mt-0.5 w-5 h-5 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-[10px] shrink-0">3</span>
+                  <p>The banner goes <strong>live sitewide</strong> with the countdown timer you've configured.</p>
+                </div>
+              </div>
+              {lastBroadcastCount > 0 && (
+                <div className="mt-4 pt-3 border-t border-[#009FE3]/15 flex items-center gap-2 text-xs font-bold text-emerald-700">
+                  <CheckCircle2 size={14} />
+                  Last broadcast: {lastBroadcastCount} email{lastBroadcastCount !== 1 ? 's' : ''} dispatched successfully.
+                </div>
+              )}
             </div>
 
           </div>
@@ -1393,6 +2380,13 @@ function AdminDashboard() {
                 </div>
 
                 <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => openInvoicePrintWindow(orderDetails || selectedOrder)}
+                    className="px-3.5 py-1.5 bg-[#009FE3] hover:bg-[#008bc5] text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                    title="Download / Print GST Tax Invoice"
+                  >
+                    <Download size={14} /> Download Invoice
+                  </button>
                   <button
                     onClick={() => window.print()}
                     className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
@@ -1570,6 +2564,153 @@ function AdminDashboard() {
                 )}
               </div>
 
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ════════════════════════════════════════════════════════════════════ */}
+      {/* PRE-WRITTEN RECOVERY & PROMOTIONAL MESSAGE MODAL                     */}
+      {/* ════════════════════════════════════════════════════════════════════ */}
+      <AnimatePresence>
+        {showRecoveryModal && selectedRecoverySession && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 overflow-y-auto flex items-center justify-center p-3 sm:p-6"
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              className="bg-white rounded-3xl shadow-2xl max-w-xl w-full overflow-hidden border border-gray-100 my-auto"
+            >
+              <div className="px-6 py-4 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] font-bold text-[#009FE3] uppercase tracking-wider">Customer Outreach & Recovery</span>
+                  <h3 className="text-base font-bold text-gray-900">Send Offer / Recovery Message</h3>
+                </div>
+                <button
+                  onClick={() => setShowRecoveryModal(false)}
+                  className="p-1.5 text-gray-400 hover:text-gray-700 rounded-lg cursor-pointer"
+                >
+                  <XCircle size={20} />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4 text-xs">
+                {/* Customer Context Card */}
+                <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-3.5 flex items-center justify-between">
+                  <div>
+                    <p className="font-bold text-gray-900 text-sm">{selectedRecoverySession.customerName}</p>
+                    <p className="text-gray-500 text-[11px] mt-0.5">
+                      {selectedRecoverySession.email || 'No email'} {selectedRecoverySession.phone ? `• +91 ${selectedRecoverySession.phone}` : ''}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] text-gray-400 font-bold uppercase">Value</span>
+                    <p className="font-black text-gray-900 text-sm">₹{selectedRecoverySession.cartTotal.toLocaleString('en-IN')}</p>
+                  </div>
+                </div>
+
+                {/* Pre-written Template Selector */}
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-600 uppercase tracking-wider mb-1.5">
+                    Select Pre-written Template
+                  </label>
+                  <select
+                    value={selectedTemplateId}
+                    onChange={e => handleTemplateChange(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50 font-bold text-xs text-gray-900 outline-none focus:bg-white focus:border-[#009FE3] cursor-pointer"
+                  >
+                    {EMAIL_TEMPLATES.map(t => (
+                      <option key={t.id} value={t.id}>
+                        {t.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Subject */}
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-600 uppercase tracking-wider mb-1.5">
+                    Email Subject
+                  </label>
+                  <input
+                    type="text"
+                    value={customSubject}
+                    onChange={e => setCustomSubject(e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl border border-gray-200 bg-gray-50 text-xs font-semibold text-gray-900 outline-none focus:bg-white focus:border-[#009FE3]"
+                  />
+                </div>
+
+                {/* Message Body */}
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-600 uppercase tracking-wider mb-1.5">
+                    Message Body (Customizable)
+                  </label>
+                  <textarea
+                    rows={8}
+                    value={customBody}
+                    onChange={e => setCustomBody(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-xs font-medium text-gray-900 outline-none focus:bg-white focus:border-[#009FE3] leading-relaxed resize-none"
+                  />
+                </div>
+
+                {/* Hostinger Sender Info Badge */}
+                <div className="flex items-center justify-between px-3 py-2 bg-sky-50/70 border border-sky-200/60 rounded-xl text-[11px]">
+                  <div className="flex items-center gap-1.5 text-sky-800 font-semibold">
+                    <Mail size={13} className="text-[#009FE3]" />
+                    <span>Sender: <strong className="font-mono text-zinc-900">{SENDER_EMAIL}</strong></span>
+                  </div>
+                  <span className="text-[10px] font-bold text-sky-600 uppercase tracking-wide bg-sky-100 px-2 py-0.5 rounded">Hostinger Webmail</span>
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center justify-between pt-3 border-t border-gray-100 flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowRecoveryModal(false)}
+                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl cursor-pointer text-xs"
+                  >
+                    Cancel
+                  </button>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {selectedRecoverySession.phone && (
+                      <button
+                        type="button"
+                        onClick={handleSendRecoveryWhatsApp}
+                        className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95 text-xs"
+                      >
+                        <MessageSquare size={13} />
+                        <span>WhatsApp</span>
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={handleSendRecoveryEmail}
+                      className="px-3.5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl flex items-center gap-1.5 cursor-pointer text-xs"
+                      title="Open message in your default mail application"
+                    >
+                      <ExternalLink size={12} />
+                      <span>Mail App</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleSendDirectServerEmail}
+                      disabled={sendingDirectEmail}
+                      className="px-4 py-2 bg-[#009FE3] hover:bg-[#008bc5] disabled:opacity-50 text-white font-bold rounded-xl flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95 text-xs"
+                    >
+                      {sendingDirectEmail ? <Loader size={13} className="animate-spin" /> : <Send size={13} />}
+                      <span>Send from {SENDER_EMAIL}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
             </motion.div>
           </motion.div>
         )}

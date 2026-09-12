@@ -10,7 +10,7 @@ const articles = [
   {
     date: 'August 2026',
     title: 'TOPSUN Expands Next-Gen Running Line with Sunspark & Storm Runner',
-    excerpt: 'Featuring responsive EVA cushioning and high-traction honeycomb outsoles for marathon enthusiasts and street runners — available directly via topsunfootwear.com.',
+    excerpt: 'Featuring responsive EVA cushioning and high-traction honeycomb outsoles for marathon enthusiasts and street runners — available directly via topsun.in.',
     tag: 'Product Announcement',
   },
   {
@@ -33,6 +33,7 @@ export default function Press() {
       <SEOHead
         title="Press & Media Kit – TOPSUN Footwear Newsroom"
         description="Latest press releases, brand milestones, and product announcements from TOPSUN performance footwear. Contact our media relations team."
+        canonicalUrl="https://topsun.in/press"
         breadcrumbs={[{ name: 'Home', url: '/' }, { name: 'Press', url: '/press' }]}
       />
       <Header

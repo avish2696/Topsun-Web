@@ -32,8 +32,8 @@ export interface SEOHeadProps {
 
 const DEFAULT_TITLE = 'TOPSUN Footwear | Premium Sport & Performance Footwear';
 const DEFAULT_DESCRIPTION = 'Discover TOPSUN high-performance running shoes, trail runners, and everyday casual sneakers. Engineered with responsive cushioning, breathable mesh, and all-day comfort. Free shipping across India.';
-const BASE_DOMAIN = 'https://topsunfootwear.com';
-const DEFAULT_OG_IMAGE = 'https://topsunfootwear.com/favicon.svg';
+const BASE_DOMAIN = 'https://topsun.in';
+const DEFAULT_OG_IMAGE = 'https://topsun.in/og-image.jpg';
 
 export function SEOHead({
   title,
@@ -93,11 +93,15 @@ export function SEOHead({
       el.setAttribute('content', content);
     };
 
+    const absoluteOgImage = ogImage.startsWith('http')
+      ? ogImage
+      : `${BASE_DOMAIN}${ogImage.startsWith('/') ? '' : '/'}${ogImage}`;
+
     setMetaProp('og:title', formattedTitle);
     setMetaProp('og:description', description);
     setMetaProp('og:url', fullCanonical);
     setMetaProp('og:type', ogType);
-    setMetaProp('og:image', ogImage);
+    setMetaProp('og:image', absoluteOgImage);
     setMetaProp('og:site_name', 'TOPSUN Footwear');
 
     // 5. Twitter Card Tags
@@ -114,7 +118,7 @@ export function SEOHead({
     setMetaName('twitter:card', 'summary_large_image');
     setMetaName('twitter:title', formattedTitle);
     setMetaName('twitter:description', description);
-    setMetaName('twitter:image', ogImage);
+    setMetaName('twitter:image', absoluteOgImage);
 
     // 6. JSON-LD Structured Data
     const existingScripts = document.querySelectorAll('script[data-dynamic-seo]');
@@ -165,18 +169,22 @@ export function SEOHead({
           '@type': 'ListItem',
           position: index + 1,
           name: b.name,
-          item: b.url.startsWith('http') ? b.url : `${BASE_DOMAIN}${b.url}`,
+          item: b.url.startsWith('http') ? b.url : `${BASE_DOMAIN}${b.url.startsWith('/') ? '' : '/'}${b.url}`,
         })),
       });
     }
 
-    // Product Schema
+    // Product Schema (strictly validated per product)
     if (productData) {
+      const productImage = productData.image.startsWith('http')
+        ? productData.image
+        : `${BASE_DOMAIN}${productData.image.startsWith('/') ? '' : '/'}${productData.image}`;
+
       schemas.push({
         '@context': 'https://schema.org',
         '@type': 'Product',
         name: productData.name,
-        image: [productData.image],
+        image: [productImage],
         description: productData.description,
         sku: String(productData.sku || productData.name.toLowerCase().replace(/\s+/g, '-')),
         brand: {
@@ -203,6 +211,8 @@ export function SEOHead({
           ? {
               '@type': 'AggregateRating',
               ratingValue: productData.rating,
+              bestRating: '5',
+              worstRating: '1',
               reviewCount: productData.reviewsCount || 180,
             }
           : undefined,

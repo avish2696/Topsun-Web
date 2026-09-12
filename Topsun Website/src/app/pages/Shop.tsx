@@ -3,8 +3,9 @@ import Header from '@/app/components/Header';
 import {
   Star, Heart, Search, X, ShoppingCart, MessageCircle
 } from 'lucide-react';
-import { PRODUCTS } from '@/data/products';
-import { Link, useNavigate } from 'react-router-dom';
+import { PRODUCTS, getAllProductsWithOffers } from '@/data/products';
+import { useProductOffers } from '@/app/utils/productOffers';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useShopping } from '@/app/context/ShoppingContext';
 import { SEOHead } from '@/app/components/SEOHead';
 import { Breadcrumbs } from '@/app/components/Breadcrumbs';
@@ -18,14 +19,15 @@ interface ProductCardProps {
 }
 
 function ProductCard({ product, onQuickAdd }: ProductCardProps) {
-  const discount = Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
+  const hasDiscount = product.originalPrice > product.price;
+  const discount = hasDiscount ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100) : 0;
   const [isWishlisted, setIsWishlisted] = useState(false);
 
   const handleWishlist = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setIsWishlisted(!isWishlisted);
-    toast.success(!isWishlisted ? `Added ${product.name} to wishlist` : `Removed from wishlist`);
+    toast(isWishlisted ? 'Removed from wishlist' : 'Added to wishlist');
   };
 
   const handleAddClick = (e: React.MouseEvent) => {
@@ -48,7 +50,7 @@ function ProductCard({ product, onQuickAdd }: ProductCardProps) {
       >
         <img
           src={product.image}
-          alt={`${product.name} ${product.colorLabel}`}
+          alt={`${product.name} - ${product.colorLabel} ${product.category} Footwear`}
           loading="lazy"
           className="w-full h-full object-contain mix-blend-multiply transition-transform duration-500 group-hover:scale-105"
         />
@@ -69,10 +71,10 @@ function ProductCard({ product, onQuickAdd }: ProductCardProps) {
         <button
           type="button"
           onClick={handleWishlist}
-          className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-white border border-[#e4ded5] flex items-center justify-center shadow-xs transition-colors z-10 cursor-pointer text-[#606870] hover:text-rose-500"
-          aria-label="Wishlist"
+          className="absolute top-2.5 right-2.5 w-10 h-10 min-w-[44px] min-h-[44px] rounded-full bg-white border border-[#e4ded5] flex items-center justify-center shadow-xs transition-colors z-10 cursor-pointer text-[#606870] hover:text-rose-500 active:scale-95"
+          aria-label={`Add ${product.name} to wishlist`}
         >
-          <Heart size={15} className={isWishlisted ? 'fill-rose-500 text-rose-500' : ''} />
+          <Heart size={16} className={isWishlisted ? 'fill-rose-500 text-rose-500' : ''} />
         </button>
 
         {/* Rating Pill overlaid on bottom left (matching Photo 2: e.g. ★ 4.8 (214)) */}
@@ -95,14 +97,18 @@ function ProductCard({ product, onQuickAdd }: ProductCardProps) {
             <span className="text-sm sm:text-base font-black text-[#121518]">
               ₹ {product.price.toLocaleString('en-IN')}
             </span>
-            <span className="text-[11px] sm:text-xs text-gray-400 line-through">
-              ₹{product.originalPrice.toLocaleString('en-IN')}
-            </span>
+            {hasDiscount && (
+              <span className="text-[11px] sm:text-xs text-gray-400 line-through">
+                ₹{product.originalPrice.toLocaleString('en-IN')}
+              </span>
+            )}
           </div>
 
-          <p className="text-[10px] sm:text-[11px] text-emerald-700 font-bold">
-            {discount}% Off
-          </p>
+          {hasDiscount && (
+            <p className="text-[10px] sm:text-[11px] text-emerald-700 font-bold">
+              {discount}% Off
+            </p>
+          )}
         </Link>
 
         {/* Add To Cart CTA Button (Matching Photo 2 pill style) */}
@@ -125,12 +131,34 @@ export default function Shop() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { getCartItemCount, addToCart, openCartDrawer } = useShopping();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [sortBy, setSortBy] = useState<string>('featured');
   const [searchQuery, setSearchQuery] = useState('');
   const [showSortModal, setShowSortModal] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [selectedCategory, setSelectedCategory] = useState<string>(
+    searchParams.get('category') || 'All'
+  );
+
+  const CATEGORIES = ['All', 'Running', 'Casual', 'Outdoor', 'Walking', 'Street', 'Everyday', 'Performance'];
+
+  useEffect(() => {
+    const cat = searchParams.get('category');
+    if (cat) {
+      setSelectedCategory(cat);
+    }
+  }, [searchParams]);
+
+  const handleCategoryChange = (category: string) => {
+    setSelectedCategory(category);
+    if (category === 'All') {
+      searchParams.delete('category');
+      setSearchParams(searchParams);
+    } else {
+      setSearchParams({ category });
+    }
+  };
 
   // Size modal state for quick add
   const [sizeModalProduct, setSizeModalProduct] = useState<(typeof PRODUCTS)[0] | null>(null);
@@ -159,7 +187,10 @@ export default function Shop() {
     setSizeModalProduct(null);
   };
 
-  const filteredProducts = PRODUCTS
+  useProductOffers();
+  const allProducts = getAllProductsWithOffers();
+
+  const filteredProducts = allProducts
     .filter((p) => {
       const matchCat = selectedCategory === 'All' || p.category.toLowerCase() === selectedCategory.toLowerCase();
       const matchSearch = searchQuery === '' ||
@@ -175,13 +206,27 @@ export default function Shop() {
       return 0;
     });
 
+  const pageTitle = selectedCategory === 'All'
+    ? "Men's Athletic & Casual Footwear Collection | TOPSUN"
+    : `Men's ${selectedCategory} Shoes | TOPSUN Footwear Collection`;
+  const pageDescription = selectedCategory === 'All'
+    ? "Explore the full TOPSUN footwear range for men: high-rebound running shoes, casual sneakers, trail runners, and daily trainers. Free delivery across India."
+    : `Shop premium TOPSUN ${selectedCategory} footwear engineered for responsive cushioning, breathable knit comfort, and durability. Free delivery across India.`;
+  const canonicalUrl = selectedCategory === 'All'
+    ? "https://topsun.in/shop"
+    : `https://topsun.in/shop?category=${encodeURIComponent(selectedCategory.toLowerCase())}`;
+
   return (
     <div className="min-h-screen bg-[#fcfbfa] text-[#121518]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       <SEOHead
-        title="Footwear For Men | TOPSUN Collection"
-        description="Explore premium running, casual, walking, and performance footwear for men. Free delivery and easy exchanges."
-        canonicalUrl="https://topsunfootwear.com/shop"
-        breadcrumbs={[{ name: 'Home', url: '/' }, { name: 'Shop', url: '/shop' }]}
+        title={pageTitle}
+        description={pageDescription}
+        canonicalUrl={canonicalUrl}
+        breadcrumbs={[
+          { name: 'Home', url: '/' },
+          { name: 'Shop', url: '/shop' },
+          ...(selectedCategory !== 'All' ? [{ name: selectedCategory, url: `/shop?category=${selectedCategory.toLowerCase()}` }] : []),
+        ]}
       />
 
       <Header
@@ -192,9 +237,14 @@ export default function Shop() {
       />
 
       <main className="pt-24 sm:pt-28 pb-28 max-w-[1400px] mx-auto px-3 sm:px-6 lg:px-8 space-y-4">
-        <Breadcrumbs items={[{ label: 'Footwear Collection' }]} />
+        <Breadcrumbs
+          items={[
+            { label: 'Shop', href: '/shop' },
+            ...(selectedCategory !== 'All' ? [{ label: selectedCategory }] : [{ label: 'All Footwear' }]),
+          ]}
+        />
 
-        {/* Search Bar with Brown Action Button (Matching Photo 2) */}
+        {/* Search Bar with Action Button */}
         <div className="flex items-center gap-2 pt-1">
           <div className="relative flex-1">
             <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -202,13 +252,14 @@ export default function Shop() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search Oxy, Running, Sneakers..."
+              placeholder="Search running, sneakers, trail shoes..."
               className="w-full pl-10 pr-8 py-2.5 rounded-full bg-white border border-[#e4ded5] text-xs sm:text-sm text-[#121518] placeholder-gray-400 focus:outline-none focus:border-[#b38b3f] shadow-2xs"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#121518] cursor-pointer"
+                aria-label="Clear search query"
               >
                 <X size={14} />
               </button>
@@ -222,11 +273,31 @@ export default function Shop() {
           </button>
         </div>
 
-        {/* Section Heading: FOOTWEAR FOR MEN (Bold clean uppercase matching Photo 2) */}
-        <div className="pt-2 border-b border-[#e4ded5] pb-3">
+        {/* Category Filter Chips for Rich Internal Linking */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none -mx-3 px-3 sm:mx-0 sm:px-0">
+          {CATEGORIES.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => handleCategoryChange(cat)}
+              className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap min-h-[44px] flex items-center justify-center ${
+                selectedCategory.toLowerCase() === cat.toLowerCase()
+                  ? 'bg-[#121518] text-white shadow-xs'
+                  : 'bg-white border border-[#e4ded5] text-[#606870] hover:text-[#121518] hover:border-zinc-400'
+              }`}
+            >
+              {cat === 'All' ? 'All Shoes' : cat}
+            </button>
+          ))}
+        </div>
+
+        {/* Section Heading with Dynamic H1 Matching Keyword Intent */}
+        <div className="pt-2 border-b border-[#e4ded5] pb-3 flex items-baseline justify-between">
           <h1 className="text-xl sm:text-2xl font-black text-[#121518] tracking-tight uppercase">
-            Footwear For Men
+            {selectedCategory === 'All' ? 'Footwear For Men' : `Men's ${selectedCategory} Footwear`}
           </h1>
+          <span className="text-xs text-[#606870] font-medium">
+            {filteredProducts.length} {filteredProducts.length === 1 ? 'Product' : 'Products'}
+          </span>
         </div>
 
         {/* Product Grid (2 columns on mobile, 3 tablet, 4 desktop) */}
@@ -250,18 +321,7 @@ export default function Shop() {
       </main>
 
       {/* Floating Action Buttons (Matching Photo 2) */}
-      {/* 1. Green WhatsApp Support Button (Bottom Left) */}
-      <a
-        href="https://wa.me/917485006659?text=Hi%20TOPSUN%20Team!%20I%20have%20a%20question%20about%20your%20footwear."
-        target="_blank"
-        rel="noopener noreferrer"
-        className="fixed bottom-20 left-4 z-40 w-12 h-12 rounded-full bg-[#25D366] text-white flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all cursor-pointer"
-        aria-label="WhatsApp Support"
-      >
-        <MessageCircle size={26} className="fill-white text-[#25D366]" />
-      </a>
-
-      {/* 2. Floating Search & Cart Buttons (Bottom Right) */}
+      {/* Floating Search & Cart Buttons (Bottom Right) */}
       <div className="fixed bottom-20 right-4 z-40 flex items-center gap-2">
         <button
           onClick={() => {

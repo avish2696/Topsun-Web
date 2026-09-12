@@ -7,6 +7,7 @@ import { useAuth } from "@/app/context/AuthContext";
 import { useShopping } from "@/app/context/ShoppingContext";
 import { useSalesBanner } from "@/app/utils/salesBannerSettings";
 import { toast } from "sonner";
+import ThemeToggle from "@/app/components/ThemeToggle";
 
 interface HeaderProps {
   cartCount: number;
@@ -114,13 +115,13 @@ export default function Header({
           <div className="flex items-center gap-3">
             <button
               onClick={() => toggleMenu(!isMenuOpen)}
-              className="lg:hidden p-1.5 text-[#121518] hover:text-black rounded-lg transition-colors cursor-pointer"
+              className="lg:hidden w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-[#121518] hover:text-black rounded-lg transition-colors cursor-pointer"
               aria-label="Toggle navigation menu"
             >
               {isMenuOpen ? <X size={22} /> : <Menu size={22} />}
             </button>
 
-            <Link to="/" className="flex items-center gap-2">
+            <Link to="/" className="flex items-center gap-2 min-h-[44px]">
               <img src={TopsunLogoImg} alt="TOPSUN Footwear" className="h-7 sm:h-8 object-contain" />
             </Link>
           </div>
@@ -133,7 +134,7 @@ export default function Header({
                 <Link
                   key={item.label}
                   to={item.href}
-                  className={`text-xs uppercase tracking-wider font-bold transition-colors ${
+                  className={`text-xs uppercase tracking-wider font-bold transition-colors py-2 ${
                     isActive ? "text-[#b38b3f]" : "text-[#606870] hover:text-[#121518]"
                   }`}
                 >
@@ -143,13 +144,17 @@ export default function Header({
             })}
           </nav>
 
-          {/* Right: Actions (Orders, Cart, User) */}
-          <div className="flex items-center gap-1.5 sm:gap-3">
-            {/* Orders Icon (Photo 2) */}
+          {/* Right: Actions (Theme Toggle, Orders, Cart, User) */}
+          <div className="flex items-center gap-1 sm:gap-2">
+            {/* Theme Toggle Button */}
+            <ThemeToggle />
+
+            {/* Orders Icon */}
             <Link
               to="/orders"
-              className="p-2 text-[#121518] hover:bg-[#faf7f2] rounded-full transition-colors cursor-pointer"
+              className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-[#121518] hover:bg-[#faf7f2] rounded-full transition-colors cursor-pointer"
               title="Track Orders"
+              aria-label="Track Orders"
             >
               <Package size={20} />
             </Link>
@@ -157,8 +162,9 @@ export default function Header({
             {/* Cart Button */}
             <button
               onClick={handleCartOpen}
-              className="relative p-2 text-[#121518] hover:bg-[#faf7f2] rounded-full transition-colors cursor-pointer"
+              className="relative w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-[#121518] hover:bg-[#faf7f2] rounded-full transition-colors cursor-pointer"
               title="View Cart"
+              aria-label={`View Cart, ${cartCount} items`}
             >
               <ShoppingCart size={20} />
               {cartCount > 0 && (
@@ -172,10 +178,11 @@ export default function Header({
             <div className="relative">
               <button
                 onClick={handleProfileClick}
-                className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors cursor-pointer ${
+                className={`w-11 h-11 min-w-[44px] min-h-[44px] rounded-full flex items-center justify-center transition-colors cursor-pointer ${
                   user ? "bg-[#121518] text-white" : "text-[#606870] hover:text-[#121518] hover:bg-[#faf7f2]"
                 }`}
                 title={user ? user.fullName || "My Account" : "Sign In"}
+                aria-label={user ? user.fullName || "My Account" : "Sign In"}
               >
                 <User size={18} />
               </button>
@@ -263,6 +270,11 @@ export default function Header({
                 </Link>
               </div>
 
+              <div className="pt-3 pb-2 border-t border-[#e4ded5] flex items-center justify-between">
+                <span className="text-xs font-bold text-[#121518]">Theme (Dark / Light)</span>
+                <ThemeToggle />
+              </div>
+
               {user ? (
                 <div className="pt-3 border-t border-[#e4ded5] flex items-center justify-between">
                   <span className="text-xs text-[#606870] font-medium truncate">{user.fullName || user.phone}</span>
@@ -292,9 +304,10 @@ export default function Header({
       >
         <Link
           to="/"
-          className={`flex flex-col items-center justify-center gap-1 w-14 py-1 transition-colors ${
+          className={`flex flex-col items-center justify-center gap-1 w-14 min-h-[44px] min-w-[44px] py-1 transition-colors ${
             location.pathname === "/" ? "text-[#121518]" : "text-[#606870]"
           }`}
+          aria-label="Home page"
         >
           <Home size={19} className={location.pathname === "/" ? "text-[#b38b3f]" : ""} />
           <span className="text-[10px] font-bold">Home</span>
@@ -302,21 +315,21 @@ export default function Header({
 
         <Link
           to="/shop"
-          className={`flex flex-col items-center justify-center gap-1 w-14 py-1 transition-colors ${
+          className={`flex flex-col items-center justify-center gap-1 w-14 min-h-[44px] min-w-[44px] py-1 transition-colors ${
             location.pathname.startsWith("/shop") || location.pathname.startsWith("/product") ? "text-[#121518]" : "text-[#606870]"
           }`}
+          aria-label="Footwear collection shop"
         >
           <ShoppingBag size={19} className={location.pathname.startsWith("/shop") ? "text-[#b38b3f]" : ""} />
           <span className="text-[10px] font-bold">Shop</span>
         </Link>
 
-
-
         <Link
           to="/orders"
-          className={`flex flex-col items-center justify-center gap-1 w-14 py-1 transition-colors ${
+          className={`flex flex-col items-center justify-center gap-1 w-14 min-h-[44px] min-w-[44px] py-1 transition-colors ${
             location.pathname === "/orders" || location.pathname === "/track-order" ? "text-[#121518]" : "text-[#606870]"
           }`}
+          aria-label="Track orders"
         >
           <Package size={19} className={location.pathname === "/orders" ? "text-[#b38b3f]" : ""} />
           <span className="text-[10px] font-bold">Orders</span>
@@ -324,9 +337,10 @@ export default function Header({
 
         <Link
           to={user ? "/profile" : "/signin"}
-          className={`flex flex-col items-center justify-center gap-1 w-14 py-1 transition-colors ${
+          className={`flex flex-col items-center justify-center gap-1 w-14 min-h-[44px] min-w-[44px] py-1 transition-colors ${
             location.pathname === "/profile" || location.pathname === "/signin" ? "text-[#121518]" : "text-[#606870]"
           }`}
+          aria-label={user ? "My account profile" : "Sign in or register"}
         >
           <User size={19} className={location.pathname === "/profile" ? "text-[#b38b3f]" : ""} />
           <span className="text-[10px] font-bold">{user ? "Account" : "Login"}</span>

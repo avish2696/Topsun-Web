@@ -62,6 +62,8 @@ import HyperFlow3 from '@/imports/sprint-pro/3.webp';
 import HyperFlow4 from '@/imports/sprint-pro/4.webp';
 import HyperFlow5 from '@/imports/sprint-pro/5.webp';
 
+import { getProductOffers, calculateShoePrice } from '@/app/utils/productOffers';
+
 // --- Product data ---
 
 export const PRODUCTS = [
@@ -71,11 +73,11 @@ export const PRODUCTS = [
     name: 'TOPSUN Airflex',
     brand: 'TOPSUN',
     category: 'Running',
-    price: 2000,
+    price: 4000,
     originalPrice: 4000,
     rating: 4.8,
     reviews: 214,
-    tag: '50% OFF',
+    tag: '',
     colorLabel: 'Mint Green / Blue',
     cardBg: '#e6f8f4',
     image: Airflex1,
@@ -106,11 +108,11 @@ export const PRODUCTS = [
     name: 'TOPSUN Duro Ridge',
     brand: 'TOPSUN',
     category: 'Casual',
-    price: 2200,
+    price: 5500,
     originalPrice: 5500,
     rating: 4.7,
     reviews: 189,
-    tag: '60% OFF',
+    tag: '',
     colorLabel: 'White / Black / Tan',
     cardBg: '#f0f0f2',
     image: DuroRidge1,
@@ -141,11 +143,11 @@ export const PRODUCTS = [
     name: 'TOPSUN Sunspark',
     brand: 'TOPSUN',
     category: 'Outdoor',
-    price: 2280,
+    price: 5700,
     originalPrice: 5700,
     rating: 4.9,
     reviews: 301,
-    tag: '60% OFF',
+    tag: '',
     colorLabel: 'White / Grey / Tan / Orange',
     cardBg: '#f7f0e6',
     image: Sunspark1,
@@ -176,11 +178,11 @@ export const PRODUCTS = [
     name: 'TOPSUN Duskflex',
     brand: 'TOPSUN',
     category: 'Walking',
-    price: 2400,
+    price: 6000,
     originalPrice: 6000,
     rating: 4.6,
     reviews: 176,
-    tag: '60% OFF',
+    tag: '',
     colorLabel: 'Black / Peach / Teal',
     cardBg: '#e8f0ee',
     image: Duskflex1,
@@ -211,11 +213,11 @@ export const PRODUCTS = [
     name: 'TOPSUN Emberflex',
     brand: 'TOPSUN',
     category: 'Street',
-    price: 2000,
+    price: 5000,
     originalPrice: 5000,
     rating: 4.8,
     reviews: 243,
-    tag: '60% OFF',
+    tag: '',
     colorLabel: 'White / Grey / Orange',
     cardBg: '#fff1ea',
     image: Emberflex1,
@@ -246,11 +248,11 @@ export const PRODUCTS = [
     name: 'TOPSUN Cloudmax',
     brand: 'TOPSUN',
     category: 'Everyday',
-    price: 2080,
+    price: 5200,
     originalPrice: 5200,
     rating: 4.7,
     reviews: 158,
-    tag: '60% OFF',
+    tag: '',
     colorLabel: 'Light Grey / White',
     cardBg: '#fef4e6',
     image: Cloudmax1,
@@ -281,11 +283,11 @@ export const PRODUCTS = [
     name: 'TOPSUN HyperFlow',
     brand: 'TOPSUN',
     category: 'Performance',
-    price: 2100,
+    price: 4200,
     originalPrice: 4200,
     rating: 4.9,
     reviews: 267,
-    tag: '50% OFF',
+    tag: '',
     colorLabel: 'White / Blue',
     cardBg: '#f5f5f5',
     image: HyperFlow1,
@@ -315,21 +317,52 @@ export const PRODUCTS = [
 // Kept for backwards-compatibility — old code that imports PRODUCTS_DATABASE still works
 export const PRODUCTS_DATABASE = PRODUCTS;
 
-/** Find one product by its URL slug, e.g. 'airflex' */
+/** Helper to apply dynamic admin offer from original price */
+export function applyOfferToProduct(product: any) {
+  if (!product) return product;
+  const offers = getProductOffers();
+  const offer = offers[product.id];
+  const original = product.originalPrice || product.price;
+  const { price, discount, badge } = calculateShoePrice(original, offer);
+  return {
+    ...product,
+    price,
+    originalPrice: original,
+    tag: badge,
+    discountPercent: discount,
+  };
+}
+
+/** Get all products with currently active admin offers applied */
+export function getAllProductsWithOffers() {
+  return PRODUCTS.map(applyOfferToProduct);
+}
+
+/** Find one product by its URL slug, e.g. 'airflex', with active offers applied */
 export function getProductBySlug(slug: string) {
-  return PRODUCTS.find((p) => p.slug === slug);
+  const p = PRODUCTS.find((item) => item.slug === slug);
+  return p ? applyOfferToProduct(p) : undefined;
 }
 
-/** Find one product by its numeric ID */
+/** Find one product by its numeric ID with active offers applied */
 export function getProductById(id: number) {
-  return PRODUCTS.find((p) => p.id === id);
+  const p = PRODUCTS.find((item) => item.id === id);
+  return p ? applyOfferToProduct(p) : undefined;
 }
 
-/** Return up to `limit` products in the same category as the given product ID */
+/** Return up to `limit` products in the same category or related footwear collection */
 export function getRelatedProducts(currentProductId: number, limit = 6) {
   const current = getProductById(currentProductId);
   if (!current) return [];
-  return PRODUCTS.filter(
-    (p) => p.category === current.category && p.id !== currentProductId
-  ).slice(0, limit);
+  const sameCategory = PRODUCTS.filter(
+    (p) => p.category.toLowerCase() === current.category.toLowerCase() && p.id !== currentProductId
+  );
+  if (sameCategory.length >= 3) {
+    return sameCategory.slice(0, limit);
+  }
+  // Add other footwear models from the collection to guarantee rich internal linking
+  const otherProducts = PRODUCTS.filter(
+    (p) => p.id !== currentProductId && !sameCategory.some((s) => s.id === p.id)
+  );
+  return [...sameCategory, ...otherProducts].slice(0, limit);
 }

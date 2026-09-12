@@ -7,6 +7,7 @@ import { useAuth } from '@/app/context/AuthContext';
 import { supabase } from '@/supabase';
 import { toast } from 'sonner';
 import Header from '@/app/components/Header';
+import { SEOHead } from '@/app/components/SEOHead';
 
 export default function OrderConfirmation() {
   const [order, setOrder] = useState<any | null>(null);
@@ -414,6 +415,11 @@ export default function OrderConfirmation() {
 
   return (
     <div className="min-h-screen bg-[#f1f3f6] flex flex-col justify-start items-center" style={{ fontFamily: "'Inter', sans-serif" }}>
+      <SEOHead
+        title="Order Confirmation | TOPSUN Footwear"
+        description="Your TOPSUN footwear order confirmation and delivery details."
+        noIndex={true}
+      />
       <Header
         cartCount={getCartItemCount()}
         onCartClick={() => navigate('/cart')}

@@ -16,6 +16,8 @@ import { pushOrderToShipmozo } from '@/app/utils/shipmozoService';
 import { generateShortOrderId, logOrderIdValidation } from '@/app/utils/orderIdGenerator';
 import { calculatePrice, PaymentMethod as PricingPaymentMethod } from '@/app/utils/pricingCalculator';
 import { toValidUUID } from '@/app/utils/phoneAuthService';
+import { sendOrderConfirmationEmail } from '@/app/utils/emailService';
+import { recordCartSession } from '@/app/utils/cartTracker';
 
 interface FormErrors {
   fullName?: string;
@@ -479,6 +481,16 @@ function CheckoutContent() {
     try {
       const data = await placeOrderInDB(undefined, undefined, 'cod');
       setSuccessMessage('✅ Order placed! Cash on Delivery confirmed.');
+      const addr = getActiveAddress();
+      sendOrderConfirmationEmail({
+        orderNumber: data.orderId,
+        customerEmail: addr.email || user.email,
+        customerName: addr.fullName,
+        totalAmount: getDiscountedTotal('cod'),
+        paymentMethod: 'cod',
+        items: cart,
+        shippingAddress: addr,
+      });
       await clearCart();
       setTimeout(() => navigate(`/order-success/${data.orderId}`), 1200);
     } catch (err: any) {
@@ -593,6 +605,15 @@ function CheckoutContent() {
         console.error('Shipmozo sync error:', e);
       }
 
+      sendOrderConfirmationEmail({
+        orderNumber: fullOrder?.order_number || orderId,
+        customerEmail: fullOrder?.shipping_address?.email || user?.email,
+        customerName: fullOrder?.shipping_address?.fullName,
+        totalAmount: fullOrder?.total_amount || getDiscountedTotal('card'),
+        paymentMethod: 'card',
+        items: fullOrder?.order_items || cart,
+        shippingAddress: fullOrder?.shipping_address,
+      });
       setSuccessMessage('✅ Payment verified! Order confirmed.');
       await clearCart();
       setTimeout(() => navigate(`/order-success/${orderId}`), 1200);

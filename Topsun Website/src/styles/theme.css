@@ -1,4 +1,5 @@
 @custom-variant dark (&:is(.dark *));
+@variant dark (&:where(.dark, .dark *));
 
 :root {
   --font-size: 16px;
@@ -39,11 +40,35 @@
   --sidebar-accent-foreground: #0c0c0c;
   --sidebar-border: rgba(12, 12, 12, 0.1);
   --sidebar-ring: rgba(12, 12, 12, 0.3);
+
+  /* Universal Font & Text Color CSS Variables */
+  --text-primary: #121518;
+  --text-secondary: #4b5563; /* 7.1:1 contrast on white */
+  --text-muted: #6b7280;     /* 4.8:1 contrast on white */
+  --text-accent: #009fe3;
+  --text-brand: #b38b3f;
+
+  /* Background & Surface CSS Variables */
+  --bg-primary: #ffffff;
+  --bg-surface: #faf7f2;
+  --border-subtle: #e4ded5;
 }
 
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
+
+  /* Universal Font & Text Color CSS Variables (WCAG AA >= 4.5:1 against #121518) */
+  --text-primary: #f9fafb;   /* 16.8:1 contrast against #121518 */
+  --text-secondary: #d1d5db; /* 10.5:1 contrast against #121518 */
+  --text-muted: #9ca3af;     /* 5.8:1 contrast against #121518 */
+  --text-accent: #38bdf8;
+  --text-brand: #dfc38a;
+
+  /* Background & Surface CSS Variables */
+  --bg-primary: #121518;
+  --bg-surface: #181d22;
+  --border-subtle: rgba(255, 255, 255, 0.12);
   --card: oklch(0.145 0 0);
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.145 0 0);
@@ -315,5 +340,209 @@ html, body {
   flex-direction: column;
   overflow-x: hidden;
 }
+
+/* ── Fluid typography and container responsive breakpoints ── */
+@media (min-width: 320px) {
+  :root {
+    --fluid-container-padding: clamp(0.75rem, 3vw, 1.25rem);
+  }
+}
+
+@media (min-width: 768px) {
+  :root {
+    --fluid-container-padding: clamp(1.25rem, 4vw, 2rem);
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --fluid-container-padding: clamp(1.5rem, 5vw, 2.5rem);
+  }
+}
+
+@media (min-width: 1440px) {
+  :root {
+    --fluid-container-padding: 3rem;
+  }
+}
+
+/* ── Minimum Touch Target Size (WCAG 2.5.5 / 2.5.8 >= 44x44px) ── */
+button,
+a,
+input[type="button"],
+input[type="submit"],
+.touch-target {
+  touch-action: manipulation;
+}
+
+.min-touch-target {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/* ==========================================================================
+   Comprehensive Sitewide Dark Mode (Night Theme) System
+   ========================================================================== */
+html.dark {
+  color-scheme: dark;
+}
+
+html.dark,
+html.dark body {
+  background-color: #0d1217 !important;
+  color: #f8fafc !important;
+}
+
+/* Header & Top Navbar */
+html.dark header,
+html.dark header.bg-white\/95,
+html.dark header[class*="bg-white"] {
+  background-color: rgba(13, 18, 23, 0.95) !important;
+  border-bottom-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+html.dark header nav a {
+  color: #94a3b8 !important;
+}
+
+html.dark header nav a:hover {
+  color: #f8fafc !important;
+}
+
+html.dark header button,
+html.dark header a {
+  color: #f8fafc !important;
+}
+
+html.dark header .bg-white {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: #f8fafc !important;
+}
+
+/* Surfaces, Sections & Page Backgrounds */
+html.dark main,
+html.dark [class*="bg-[#fcfbfa]"],
+html.dark [class*="bg-[#faf7f2]"],
+html.dark [class*="bg-[#f7f5f0]"],
+html.dark [class*="bg-zinc-50"],
+html.dark [class*="bg-gray-50"],
+html.dark section.bg-zinc-50 {
+  background-color: #0d1217 !important;
+  color: #f8fafc !important;
+}
+
+/* Product Cards & Card Backgrounds */
+html.dark .bg-white,
+html.dark [class*="bg-white"] {
+  background-color: #141b24 !important;
+  color: #f8fafc !important;
+}
+
+html.dark [class*="group flex flex-col bg-white"],
+html.dark .rounded-2xl.bg-white,
+html.dark .rounded-3xl.bg-white {
+  background-color: #141b24 !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Card Image Stage */
+html.dark [class*="aspect-square"][style*="background-color"] {
+  background-color: #1a222e !important;
+}
+
+html.dark img.mix-blend-multiply {
+  mix-blend-mode: normal !important;
+}
+
+/* Typography & Headings in Dark Mode */
+html.dark .text-\[\#121518\],
+html.dark .text-zinc-900,
+html.dark .text-gray-900,
+html.dark h1,
+html.dark h2,
+html.dark h3,
+html.dark h4 {
+  color: #f8fafc !important;
+}
+
+html.dark .text-\[\#606870\],
+html.dark .text-zinc-500,
+html.dark .text-gray-500,
+html.dark .text-zinc-400 {
+  color: #94a3b8 !important;
+}
+
+html.dark .text-zinc-600,
+html.dark .text-gray-600 {
+  color: #cbd5e1 !important;
+}
+
+/* Borders */
+html.dark .border-\[\#e4ded5\],
+html.dark .border-zinc-200,
+html.dark .border-zinc-300,
+html.dark .border-gray-200,
+html.dark .border-zinc-100 {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Inputs, Textareas, Search Bars, Modals */
+html.dark input[type="text"],
+html.dark input[type="email"],
+html.dark input[type="password"],
+html.dark input[type="search"],
+html.dark select,
+html.dark textarea {
+  background-color: #18222f !important;
+  color: #f8fafc !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #64748b !important;
+}
+
+/* Category Filter Buttons (Shop & Home) */
+html.dark button.bg-white,
+html.dark a.bg-white {
+  background-color: #18222f !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: #e2e8f0 !important;
+}
+
+html.dark button.bg-white:hover,
+html.dark a.bg-white:hover {
+  background-color: #233041 !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+/* Floating Bottom Navigation Bar */
+html.dark .fixed.bottom-0[class*="bg-white"],
+html.dark .fixed.bottom-0.bg-white\/95 {
+  background-color: rgba(13, 18, 23, 0.96) !important;
+  border-top-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+html.dark .fixed.bottom-0 a,
+html.dark .fixed.bottom-0 button {
+  color: #94a3b8 !important;
+}
+
+html.dark .fixed.bottom-0 a.text-\[\#009fe3\],
+html.dark .fixed.bottom-0 a.text-\[\#009FE3\],
+html.dark .fixed.bottom-0 a:hover {
+  color: #38bdf8 !important;
+}
+
+/* Modals & Drawers */
+html.dark [class*="fixed inset-0"] > [class*="bg-white"] {
+  background-color: #141b24 !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: #f8fafc !important;
+}
+
+
 
 

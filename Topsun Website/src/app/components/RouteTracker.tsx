@@ -11,10 +11,17 @@ export const RouteTracker = () => {
   const location = useLocation();
 
   useEffect(() => {
-    // Track page view on route change
+    // Track page view on route change for Meta Pixel
     trackPageView();
     
-    // Optional: Also track the specific path for debugging
+    // Track page view on route change for Google Analytics GA4
+    if (typeof (window as any).gtag === 'function') {
+      (window as any).gtag('event', 'page_view', {
+        page_path: location.pathname + location.search,
+        page_title: document.title,
+      });
+    }
+
     console.log(`📍 Route changed to: ${location.pathname}`);
   }, [location]);
 

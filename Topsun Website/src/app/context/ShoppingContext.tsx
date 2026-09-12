@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, ReactNode, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
 import { toast } from 'sonner';
+import { recordCartSession, clearCartSession } from '@/app/utils/cartTracker';
 
 export interface CartItem {
   id: number;
@@ -142,7 +143,19 @@ export function ShoppingProvider({ children }: { children: ReactNode }) {
   // Save cart to localStorage whenever it changes
   useEffect(() => {
     saveCartToStorage(cart, user?.id ?? null);
-  }, [cart, user?.id]);
+    if (cart.length > 0) {
+      const total = cart.reduce((acc, i) => acc + i.price * i.quantity, 0);
+      recordCartSession({
+        userId: user?.id,
+        customerName: (user as any)?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Guest Shopper',
+        email: user?.email,
+        phone: (user as any)?.phone,
+        items: cart,
+        totalAmount: total,
+        stage: 'cart',
+      });
+    }
+  }, [cart, user]);
 
   const loadCart = useCallback(async () => {
     const stored = loadCartFromStorage(user?.id ?? null);
@@ -193,6 +206,7 @@ export function ShoppingProvider({ children }: { children: ReactNode }) {
   const clearCart = useCallback(async () => {
     setCart([]);
     saveCartToStorage([], user?.id ?? null);
+    clearCartSession(user?.id ? `user_${user.id}` : undefined);
   }, [user?.id]);
 
   const getCartTotal = () => {

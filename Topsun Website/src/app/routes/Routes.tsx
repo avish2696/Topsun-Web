@@ -3,6 +3,8 @@ import { createBrowserRouter, RouterProvider, Outlet, useLocation } from 'react-
 
 import { RouteTracker } from '@/app/components/RouteTracker';
 import { ProtectedRoute } from '@/app/components/auth/ProtectedRoute';
+import CookieBanner from '@/app/components/CookieBanner';
+import FloatingWhatsApp from '@/app/components/FloatingWhatsApp';
 
 // Product data lives in src/data/products.ts — import from there
 export { PRODUCTS_DATABASE, PRODUCTS, getProductBySlug, getProductById, getRelatedProducts } from '@/data/products';
@@ -36,8 +38,6 @@ const Admin = lazy(() => import('@/app/pages/Admin'));
 const AdminLogin = lazy(() => import('@/app/pages/AdminLogin'));
 const NotFound = lazy(() => import('@/app/pages/NotFound'));
 
-
-
 // Loading spinner shown while lazy-loaded pages are fetching
 import LoadingScreen from '@/app/components/LoadingScreen';
 import CartDrawer from '@/app/components/CartDrawer';
@@ -53,6 +53,8 @@ const RootLayout = () => {
       <RouteTracker />
       <Outlet />
       <CartDrawer />
+      <CookieBanner />
+      <FloatingWhatsApp />
     </>
   );
 };

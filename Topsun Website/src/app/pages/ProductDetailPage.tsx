@@ -85,9 +85,9 @@ export default function ProductDetailPageRoute() {
   return (
     <div className="min-h-screen bg-[#faf7f2] text-[#121518]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       <SEOHead
-        title={`${product.name} – ${product.category} Performance Shoe`}
+        title={`${product.name} – ${product.category} Performance Shoe | TOPSUN Footwear`}
         description={product.description}
-        canonicalUrl={`https://topsunfootwear.com/product/${product.slug}`}
+        canonicalUrl={`https://topsun.in/product/${product.slug}`}
         ogImage={shoeImages[product.id] || product.image}
         ogType="product"
         productData={{

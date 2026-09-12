@@ -12,18 +12,40 @@ export default function ContactUs() {
   const navigate = useNavigate();
 
   const [form, setForm] = useState({ name: '', email: '', phone: '', orderId: '', message: '' });
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => { window.scrollTo(0, 0); }, []);
 
+  const validate = () => {
+    const e: Record<string, string> = {};
+    if (!form.name.trim()) e.name = 'Full name is required.';
+    if (!form.phone.trim()) e.phone = 'Phone number is required.';
+    else if (!/^[6-9]\d{9}$/.test(form.phone.replace(/\s/g, ''))) e.phone = 'Enter a valid 10-digit Indian mobile number.';
+    if (form.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email)) e.email = 'Enter a valid email address.';
+    if (!form.message.trim()) e.message = 'Please describe your question.';
+    else if (form.message.trim().length < 10) e.message = 'Message must be at least 10 characters.';
+    return e;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const errs = validate();
+    if (Object.keys(errs).length > 0) { setErrors(errs); return; }
+    setErrors({});
     setLoading(true);
     await new Promise((r) => setTimeout(r, 600));
     setLoading(false);
     setSent(true);
   };
+
+  const field = (key: string) => ({
+    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      setForm((prev) => ({ ...prev, [key]: e.target.value }));
+      if (errors[key]) setErrors((prev) => { const n = { ...prev }; delete n[key]; return n; });
+    },
+  });
 
   return (
     <div className="min-h-screen bg-[#faf7f2] text-[#121518]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
@@ -145,12 +167,12 @@ export default function ContactUs() {
                   </label>
                   <input
                     type="text"
-                    required
                     value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    {...field('name')}
                     placeholder="Full name"
-                    className="w-full h-11 px-3.5 bg-[#faf7f2] border border-[#d5cfc6] rounded-xl text-xs text-[#121518] outline-none focus:border-[#121518] transition-colors"
+                    className={`w-full h-11 px-3.5 bg-[#faf7f2] border rounded-xl text-xs text-[#121518] outline-none focus:border-[#121518] transition-colors ${errors.name ? 'border-red-400 bg-red-50/30' : 'border-[#d5cfc6]'}`}
                   />
+                  {errors.name && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.name}</p>}
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-[#606870] mb-1.5">
@@ -158,12 +180,13 @@ export default function ContactUs() {
                   </label>
                   <input
                     type="tel"
-                    required
                     value={form.phone}
-                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                    {...field('phone')}
                     placeholder="10-digit mobile"
-                    className="w-full h-11 px-3.5 bg-[#faf7f2] border border-[#d5cfc6] rounded-xl text-xs text-[#121518] outline-none focus:border-[#121518] transition-colors"
+                    maxLength={10}
+                    className={`w-full h-11 px-3.5 bg-[#faf7f2] border rounded-xl text-xs text-[#121518] outline-none focus:border-[#121518] transition-colors ${errors.phone ? 'border-red-400 bg-red-50/30' : 'border-[#d5cfc6]'}`}
                   />
+                  {errors.phone && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.phone}</p>}
                 </div>
               </div>
 
@@ -175,10 +198,11 @@ export default function ContactUs() {
                   <input
                     type="email"
                     value={form.email}
-                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    {...field('email')}
                     placeholder="name@example.com"
-                    className="w-full h-11 px-3.5 bg-[#faf7f2] border border-[#d5cfc6] rounded-xl text-xs text-[#121518] outline-none focus:border-[#121518] transition-colors"
+                    className={`w-full h-11 px-3.5 bg-[#faf7f2] border rounded-xl text-xs text-[#121518] outline-none focus:border-[#121518] transition-colors ${errors.email ? 'border-red-400 bg-red-50/30' : 'border-[#d5cfc6]'}`}
                   />
+                  {errors.email && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.email}</p>}
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-[#606870] mb-1.5">
@@ -199,13 +223,13 @@ export default function ContactUs() {
                   How Can We Help? *
                 </label>
                 <textarea
-                  required
                   rows={4}
                   value={form.message}
-                  onChange={(e) => setForm({ ...form, message: e.target.value })}
+                  {...field('message')}
                   placeholder="Describe your question or size request..."
-                  className="w-full p-3.5 bg-[#faf7f2] border border-[#d5cfc6] rounded-xl text-xs text-[#121518] outline-none focus:border-[#121518] transition-colors resize-none"
+                  className={`w-full p-3.5 bg-[#faf7f2] border rounded-xl text-xs text-[#121518] outline-none focus:border-[#121518] transition-colors resize-none ${errors.message ? 'border-red-400 bg-red-50/30' : 'border-[#d5cfc6]'}`}
                 />
+                {errors.message && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.message}</p>}
               </div>
 
               <button

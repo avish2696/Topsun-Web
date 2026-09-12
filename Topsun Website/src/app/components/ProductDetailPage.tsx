@@ -92,7 +92,7 @@ export default function ProductDetailPage({
   };
 
   return (
-    <div className="space-y-12" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+    <div className="space-y-12 pb-20 md:pb-0" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       {/* Product Primary Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
         {/* Left Column: Image Gallery */}
@@ -147,7 +147,12 @@ export default function ProductDetailPage({
                   }`}
                   aria-label={`Select angle ${idx + 1}`}
                 >
-                  <img src={img} alt="" className="w-full h-full object-contain mix-blend-multiply" />
+                  <img
+                    src={img}
+                    alt={`${product.name} - Thumbnail angle ${idx + 1}`}
+                    className="w-full h-full object-contain mix-blend-multiply"
+                    loading="lazy"
+                  />
                 </button>
               ))}
             </div>
@@ -418,8 +423,9 @@ export default function ProductDetailPage({
                 <div className="aspect-square bg-[#f7f5f0] rounded-xl p-4 flex items-center justify-center overflow-hidden mb-3">
                   <img
                     src={rel.image}
-                    alt={rel.name}
+                    alt={`${rel.name} - ${rel.category} Performance Footwear`}
                     className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-300"
+                    loading="lazy"
                   />
                 </div>
                 <div className="space-y-1">
@@ -449,6 +455,33 @@ export default function ProductDetailPage({
         selectedSize={selectedSize}
         productName={product?.name}
       />
+
+      {/* ── Sticky Mobile Bottom CTA ── */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-white border-t border-[#e4ded5] shadow-[0_-4px_24px_rgba(18,21,24,0.10)] px-4 py-3 flex items-center gap-3">
+        <div className="flex-1 min-w-0">
+          <p className="text-[11px] font-bold text-[#121518] truncate">{product.name}</p>
+          <div className="flex items-center gap-1.5">
+            <span className="text-base font-extrabold text-[#121518]">₹{product.price.toLocaleString('en-IN')}</span>
+            <span className="text-xs text-gray-400 line-through">₹{product.originalPrice.toLocaleString('en-IN')}</span>
+            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-md">{discount}% OFF</span>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => handleAddToCart()}
+          disabled={adding}
+          className="shrink-0 px-5 py-3 bg-[#009FE3] hover:bg-[#008bc5] disabled:opacity-60 text-white text-xs font-bold uppercase tracking-wider rounded-xl shadow-lg shadow-[#009FE3]/30 flex items-center gap-2 transition-all active:scale-95 cursor-pointer min-w-[120px] justify-center"
+          aria-label={`Add ${product.name} to cart`}
+        >
+          {adding ? (
+            <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          ) : (
+            <>
+              <span>Add to Cart</span>
+            </>
+          )}
+        </button>
+      </div>
     </div>
   );
 }

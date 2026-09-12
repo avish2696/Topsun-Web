@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   ShoppingBag,
@@ -31,6 +31,7 @@ import { useShopping } from "@/app/context/ShoppingContext";
 import HeroShoe3D from "@/app/components/HeroShoe3D";
 import Header from "@/app/components/Header";
 import { SEOHead } from "@/app/components/SEOHead";
+import { useProductOffers, calculateShoePrice } from "@/app/utils/productOffers";
 
 // High-resolution product images
 import Shoe1 from "@/imports/storm-runner/1.webp";
@@ -48,8 +49,10 @@ export interface ShoeProduct {
   series: string;
   category: string;
   price: number;
+  originalPrice: number;
   mrp: number;
   discount: number;
+  tag?: string;
   img: string;
   colorLabel: string;
   rating: number;
@@ -61,16 +64,17 @@ export interface ShoeProduct {
   };
 }
 
-const PRODUCTS: ShoeProduct[] = [
+const BASE_PRODUCTS: ShoeProduct[] = [
   {
     id: 1,
     slug: "airflex",
     name: "TOPSUN Airflex",
     series: "Series 01 // Running",
     category: "Running",
-    price: 2000,
+    price: 4000,
+    originalPrice: 4000,
     mrp: 4000,
-    discount: 50,
+    discount: 0,
     img: Shoe1,
     colorLabel: "Mint Aqua / Cyan",
     rating: 4.8,
@@ -84,9 +88,10 @@ const PRODUCTS: ShoeProduct[] = [
     name: "TOPSUN Duro Ridge",
     series: "Series 02 // Casual",
     category: "Casual",
-    price: 2200,
+    price: 5500,
+    originalPrice: 5500,
     mrp: 5500,
-    discount: 60,
+    discount: 0,
     img: Shoe2,
     colorLabel: "White / Black / Tan",
     rating: 4.7,
@@ -100,9 +105,10 @@ const PRODUCTS: ShoeProduct[] = [
     name: "TOPSUN Sunspark",
     series: "Series 03 // Outdoor",
     category: "Outdoor",
-    price: 2280,
+    price: 5700,
+    originalPrice: 5700,
     mrp: 5700,
-    discount: 60,
+    discount: 0,
     img: Shoe3,
     colorLabel: "White / Sun Orange",
     rating: 4.9,
@@ -116,9 +122,10 @@ const PRODUCTS: ShoeProduct[] = [
     name: "TOPSUN Duskflex",
     series: "Series 04 // Walking",
     category: "Walking",
-    price: 2400,
+    price: 6000,
+    originalPrice: 6000,
     mrp: 6000,
-    discount: 60,
+    discount: 0,
     img: Shoe4,
     colorLabel: "Black / Peach Teal",
     rating: 4.6,
@@ -132,9 +139,10 @@ const PRODUCTS: ShoeProduct[] = [
     name: "TOPSUN Emberflex",
     series: "Series 05 // Street",
     category: "Street",
-    price: 2000,
+    price: 5000,
+    originalPrice: 5000,
     mrp: 5000,
-    discount: 60,
+    discount: 0,
     img: Shoe5,
     colorLabel: "Chalk White / Ember",
     rating: 4.8,
@@ -148,9 +156,10 @@ const PRODUCTS: ShoeProduct[] = [
     name: "TOPSUN Cloudmax",
     series: "Series 06 // Everyday",
     category: "Everyday",
-    price: 2080,
+    price: 5200,
+    originalPrice: 5200,
     mrp: 5200,
-    discount: 60,
+    discount: 0,
     img: Shoe6,
     colorLabel: "Platinum / Pale Sand",
     rating: 4.7,
@@ -164,9 +173,10 @@ const PRODUCTS: ShoeProduct[] = [
     name: "TOPSUN HyperFlow",
     series: "Series 07 // Performance",
     category: "Performance",
-    price: 2100,
+    price: 4200,
+    originalPrice: 4200,
     mrp: 4200,
-    discount: 50,
+    discount: 0,
     img: Shoe7,
     colorLabel: "Pure White / Electric Blue",
     rating: 4.9,
@@ -187,29 +197,26 @@ export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Countdown timer state for Rush Deals banner
-  const [timeLeft, setTimeLeft] = useState({ days: 1, hours: 8, minutes: 41, seconds: 45 });
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev.seconds > 0) return { ...prev, seconds: prev.seconds - 1 };
-        if (prev.minutes > 0) return { ...prev, minutes: 59, seconds: 59 };
-        if (prev.hours > 0) return { ...prev, hours: prev.hours - 1, minutes: 59, seconds: 59 };
-        if (prev.days > 0) return { ...prev, days: prev.days - 1, hours: 23, minutes: 59, seconds: 59 };
-        return prev;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
   const navigate = useNavigate();
   const { addToCart, getCartItemCount } = useShopping();
+  const productOffers = useProductOffers();
+
+  // Dynamically compute live prices strictly from original price according to active admin offers
+  const products: ShoeProduct[] = BASE_PRODUCTS.map((p) => {
+    const offer = productOffers[p.id];
+    const { price, discount, badge } = calculateShoePrice(p.originalPrice, offer);
+    return {
+      ...p,
+      price,
+      discount,
+      tag: badge || p.tag,
+    };
+  });
 
   const filteredProducts =
     activeCategory === "All"
-      ? PRODUCTS
-      : PRODUCTS.filter((p) => p.category.toLowerCase() === activeCategory.toLowerCase());
+      ? products
+      : products.filter((p) => p.category.toLowerCase() === activeCategory.toLowerCase());
 
   const handleSelectSizeAndAdd = async (product: ShoeProduct, size: number) => {
     await addToCart({
@@ -237,39 +244,9 @@ export default function Home() {
       <SEOHead
         title="TOPSUN Footwear | Premium Sport & Performance Footwear"
         description="Explore TOPSUN's high-performance sports and running shoes engineered for Indian athletes. Experience lightweight cushioning, durable traction, and 7-day hassle-free exchanges."
-        canonicalUrl="https://topsunfootwear.com/"
+        canonicalUrl="https://topsun.in/"
         breadcrumbs={[{ name: 'Home', url: '/' }]}
       />
-
-      {/* ═══════════════════════════════════════════════════════════════════
-          TOP URGENCY COUNTDOWN DEAL STRIP
-      ═══════════════════════════════════════════════════════════════════ */}
-      <div className="bg-[#009FE3] text-white px-3 py-2 sm:py-2.5">
-        <div className="max-w-[1440px] mx-auto flex items-center justify-between gap-2 text-xs">
-          <div className="flex items-center gap-1.5 font-bold tracking-tight text-[11px] sm:text-xs uppercase truncate">
-            <Sparkles size={14} className="shrink-0 animate-spin" style={{ animationDuration: "6s" }} />
-            <span className="truncate">Comfort Rush Deals Ends In:</span>
-          </div>
-
-          <div className="flex items-center gap-1 shrink-0 font-mono text-zinc-900 font-bold">
-            <div className="bg-white px-1.5 py-0.5 rounded text-[11px] text-center min-w-[28px]">
-              {String(timeLeft.days).padStart(2, "0")}<span className="block text-[8px] font-sans font-normal text-zinc-500 leading-none">Day</span>
-            </div>
-            <span className="text-white font-bold text-xs">:</span>
-            <div className="bg-white px-1.5 py-0.5 rounded text-[11px] text-center min-w-[28px]">
-              {String(timeLeft.hours).padStart(2, "0")}<span className="block text-[8px] font-sans font-normal text-zinc-500 leading-none">Hrs</span>
-            </div>
-            <span className="text-white font-bold text-xs">:</span>
-            <div className="bg-white px-1.5 py-0.5 rounded text-[11px] text-center min-w-[28px]">
-              {String(timeLeft.minutes).padStart(2, "0")}<span className="block text-[8px] font-sans font-normal text-zinc-500 leading-none">Min</span>
-            </div>
-            <span className="text-white font-bold text-xs">:</span>
-            <div className="bg-white px-1.5 py-0.5 rounded text-[11px] text-center min-w-[28px]">
-              {String(timeLeft.seconds).padStart(2, "0")}<span className="block text-[8px] font-sans font-normal text-zinc-500 leading-none">Sec</span>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Main Navigation */}
       <Header
@@ -279,53 +256,56 @@ export default function Home() {
         mobileMenuOpen={mobileMenuOpen}
       />
 
-      {/* ═══════════════════════════════════════════════════════════════════
-          SECTION 1: HERO (DARK THEME)
-      ═══════════════════════════════════════════════════════════════════ */}
-      <section className="relative bg-[#09090b] text-white pt-6 pb-12 px-4 sm:px-8 overflow-hidden">
-        
-        {/* Subtle Ambient Radial Lighting */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-[radial-gradient(circle,rgba(0,159,227,0.18)_0%,transparent_70%)] blur-2xl" />
-        </div>
-
-        <div className="max-w-[1440px] mx-auto relative z-10">
+      {/* Main Content Landmark for Screen Readers and Accessibility Audits */}
+      <main id="main-content">
+        {/* ═══════════════════════════════════════════════════════════════════
+            SECTION 1: HERO (DARK THEME)
+        ═══════════════════════════════════════════════════════════════════ */}
+        <section className="relative bg-[#09090b] text-white pt-24 sm:pt-28 md:pt-32 pb-12 px-4 sm:px-8 overflow-hidden">
           
-          {/* Top Pill Tag */}
-          <div className="flex justify-center mb-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-[10px] sm:text-xs font-mono uppercase tracking-widest text-[#009FE3]">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#009FE3] animate-pulse" />
-              NEW 2026 PERFORMANCE SERIES
-            </span>
+          {/* Subtle Ambient Radial Lighting */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-[radial-gradient(circle,rgba(0,159,227,0.18)_0%,transparent_70%)] blur-2xl" />
           </div>
 
-          {/* Centered 3D Interactive Shoe Stage */}
-          <div className="relative w-full max-w-xl mx-auto flex flex-col items-center justify-center">
+          <div className="max-w-[1440px] mx-auto relative z-10">
             
-            {/* Background Watermark */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none overflow-hidden">
-              <span className="text-[20vw] sm:text-[14vw] font-black text-white/[0.04] tracking-tighter leading-none">
-                TOPSUN
+            {/* Top Pill Tag */}
+            <div className="flex justify-center mb-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-[10px] sm:text-xs font-mono uppercase tracking-widest text-[#009FE3]">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#009FE3] animate-pulse" />
+                NEW 2026 PERFORMANCE SERIES
               </span>
             </div>
 
-            {/* 3D Shoe Model */}
-            <div className="w-full h-[46vh] sm:h-[52vh] md:h-[500px] relative z-10">
-              <HeroShoe3D />
+            {/* Centered 3D Interactive Shoe Stage */}
+            <div className="relative w-full max-w-xl mx-auto flex flex-col items-center justify-center">
+              
+              {/* Background Watermark */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none overflow-hidden">
+                <span className="text-[20vw] sm:text-[14vw] font-black text-white/[0.04] tracking-tighter leading-none">
+                  TOPSUN
+                </span>
+              </div>
+
+              {/* 3D Shoe Model */}
+              <div className="w-full h-[360px] sm:h-[440px] md:h-[500px] relative z-10">
+                <HeroShoe3D />
+              </div>
+
             </div>
 
-          </div>
+            {/* Hero Typography */}
+            <div className="text-center max-w-2xl mx-auto mt-2">
+              <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tight leading-[1.05]">
+                TOPSUN Performance Footwear <br />
+                <span className="text-[#009FE3]">Redefined</span>
+              </h1>
 
-          {/* Hero Typography */}
-          <div className="text-center max-w-2xl mx-auto mt-2">
-            <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tight leading-[1.05]">
-              Performance Footwear <br />
-              <span className="text-[#009FE3]">Redefined</span>
-            </h1>
-
-            <p className="text-zinc-400 text-xs sm:text-sm mt-2.5 max-w-md mx-auto leading-relaxed">
-              Engineered for unmatched comfort, peak performance, and everyday style. Discover next-generation footwear handcrafted to power every step.
-            </p>
+              <p className="text-zinc-400 text-xs sm:text-sm mt-2.5 max-w-md mx-auto leading-relaxed">
+                Engineered for unmatched comfort, peak performance, and everyday style. Discover next-generation footwear handcrafted to power every step.
+              </p>
+            </div>
 
             {/* Action CTAs */}
             <div className="flex items-center justify-center gap-3 mt-5 flex-wrap">
@@ -346,7 +326,6 @@ export default function Home() {
             </div>
 
           </div>
-        </div>
       </section>
 
       {/* ═══════════════════════════════════════════════════════════════════
@@ -399,7 +378,7 @@ export default function Home() {
 
         {/* Scrollable Container with Snap */}
         <div className="flex gap-3.5 overflow-x-auto pb-4 pt-1 snap-x snap-mandatory scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
-          {PRODUCTS.map((product) => (
+          {products.map((product) => (
             <div
               key={product.id}
               onClick={() => navigate(`/product/${product.slug}`)}
@@ -411,24 +390,27 @@ export default function Home() {
                   className="relative aspect-square w-full rounded-xl p-3 flex items-center justify-center overflow-hidden mb-3"
                   style={{ backgroundColor: product.bgLight }}
                 >
-                  <span className="absolute top-2 left-2 text-[9px] font-extrabold tracking-wider uppercase px-2 py-0.5 rounded-md bg-[#009FE3] text-white">
-                    {product.discount}% OFF
-                  </span>
+                  {product.discount > 0 && (
+                    <span className="absolute top-2 left-2 text-[9px] font-extrabold tracking-wider uppercase px-2 py-0.5 rounded-md bg-[#009FE3] text-white">
+                      {product.discount}% OFF
+                    </span>
+                  )}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       toggleWishlist(product.id);
                     }}
-                    className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white/90 border border-zinc-200 flex items-center justify-center text-zinc-500 hover:text-red-500 shadow-sm"
+                    className="absolute top-2 right-2 w-10 h-10 min-w-[44px] min-h-[44px] rounded-full bg-white/90 border border-zinc-200 flex items-center justify-center text-zinc-500 hover:text-red-500 shadow-sm transition-transform active:scale-90"
+                    aria-label={`Add ${product.name} to wishlist`}
                   >
                     <Heart
-                      size={13}
+                      size={14}
                       className={wishlist.includes(product.id) ? "fill-red-500 text-red-500" : ""}
                     />
                   </button>
                   <img
                     src={product.img}
-                    alt={product.name}
+                    alt={`${product.name} - ${product.colorLabel} ${product.category} Footwear`}
                     className="w-full h-full object-contain group-hover:scale-108 transition-transform duration-300"
                     loading="lazy"
                   />
@@ -459,9 +441,11 @@ export default function Home() {
                   <div className="text-base font-extrabold text-zinc-900">
                     ₹{product.price.toLocaleString()}
                   </div>
-                  <div className="text-[11px] text-zinc-400 line-through">
-                    ₹{product.mrp.toLocaleString()}
-                  </div>
+                  {product.discount > 0 && (
+                    <div className="text-[11px] text-zinc-400 line-through">
+                      ₹{product.originalPrice.toLocaleString()}
+                    </div>
+                  )}
                 </div>
 
                 <button
@@ -528,24 +512,27 @@ export default function Home() {
                   className="relative aspect-square w-full rounded-xl p-3 flex items-center justify-center cursor-pointer overflow-hidden mb-2.5"
                   style={{ backgroundColor: product.bgLight }}
                 >
-                  <span className="absolute top-2 left-2 text-[8px] sm:text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-zinc-900 text-white">
-                    {product.discount}% OFF
-                  </span>
+                  {product.discount > 0 && (
+                    <span className="absolute top-2 left-2 text-[8px] sm:text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-zinc-900 text-white">
+                      {product.discount}% OFF
+                    </span>
+                  )}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       toggleWishlist(product.id);
                     }}
-                    className="absolute top-2 right-2 w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-white/90 border border-zinc-200 flex items-center justify-center text-zinc-500 shadow-sm"
+                    className="absolute top-2 right-2 w-10 h-10 min-w-[44px] min-h-[44px] rounded-full bg-white/90 border border-zinc-200 flex items-center justify-center text-zinc-500 hover:text-red-500 shadow-sm transition-transform active:scale-90"
+                    aria-label={`Add ${product.name} to wishlist`}
                   >
                     <Heart
-                      size={12}
+                      size={14}
                       className={wishlist.includes(product.id) ? "fill-red-500 text-red-500" : ""}
                     />
                   </button>
                   <img
                     src={product.img}
-                    alt={product.name}
+                    alt={`${product.name} - ${product.colorLabel} ${product.category} Footwear`}
                     className="w-full h-full object-contain hover:scale-105 transition-transform duration-300"
                     loading="lazy"
                   />
@@ -579,9 +566,11 @@ export default function Home() {
                   <div className="text-sm sm:text-base font-extrabold text-zinc-900">
                     ₹{product.price.toLocaleString()}
                   </div>
-                  <div className="text-[10px] text-zinc-400 line-through">
-                    ₹{product.mrp.toLocaleString()}
-                  </div>
+                  {product.discount > 0 && (
+                    <div className="text-[10px] text-zinc-400 line-through">
+                      ₹{product.originalPrice.toLocaleString()}
+                    </div>
+                  )}
                 </div>
                 <button
                   onClick={() => setSizeModalProduct(product)}
@@ -627,7 +616,7 @@ export default function Home() {
                 <div className="w-10 h-10 rounded-xl bg-sky-50 border border-sky-100 flex items-center justify-center text-[#009FE3] mb-3">
                   <Icon size={18} />
                 </div>
-                <h4 className="text-xs sm:text-sm font-bold text-zinc-900">{title}</h4>
+                <h3 className="text-xs sm:text-sm font-bold text-zinc-900">{title}</h3>
                 <p className="text-[11px] text-zinc-500 leading-relaxed mt-1">{desc}</p>
               </div>
             </div>
@@ -643,9 +632,9 @@ export default function Home() {
           <div className="w-10 h-10 rounded-full bg-white/80 border border-green-200 flex items-center justify-center mx-auto mb-3 text-emerald-700">
             <Sparkles size={18} />
           </div>
-          <h3 className="text-xl sm:text-2xl font-black text-zinc-900 tracking-tight leading-snug">
+          <h2 className="text-xl sm:text-2xl font-black text-zinc-900 tracking-tight leading-snug">
             Step Into Next-Gen Comfort Together!
-          </h3>
+          </h2>
           <p className="text-xs sm:text-sm text-zinc-600 mt-1.5 max-w-md mx-auto">
             Discover lightweight footwear engineered for your everyday stride. Subscribe for exclusive deals.
           </p>
@@ -665,9 +654,9 @@ export default function Home() {
             />
             <button
               type="submit"
-              className="px-6 py-3 bg-zinc-900 hover:bg-[#009FE3] text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-colors shadow"
+              className="px-6 py-3 bg-zinc-900 hover:bg-black text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-colors shadow-sm"
             >
-              Subscribe
+              Get Updates
             </button>
           </form>
         </div>
@@ -681,9 +670,9 @@ export default function Home() {
           
           {/* Contact Row */}
           <div>
-            <div className="text-xs font-bold uppercase text-zinc-400 font-mono tracking-wider mb-3">
-              Contact Us
-            </div>
+            <h2 className="text-xs font-bold uppercase text-zinc-400 font-mono tracking-wider mb-3">
+              Customer Support &amp; Locations
+            </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <a
                 href="https://wa.me/917485006659"
@@ -713,7 +702,7 @@ export default function Home() {
                   </div>
                   <div>
                     <div className="text-xs font-bold text-zinc-900">+91 7485006659</div>
-                    <div className="text-[10px] text-zinc-500">Customer Helpline & Orders</div>
+                    <div className="text-[10px] text-zinc-500">Customer Helpline &amp; Orders</div>
                   </div>
                 </div>
                 <ChevronRight size={16} className="text-zinc-400" />
@@ -726,9 +715,9 @@ export default function Home() {
             <div className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center mx-auto text-zinc-700 mb-2">
               <MapPin size={16} />
             </div>
-            <div className="text-xs font-bold text-zinc-900 uppercase tracking-wide">
+            <h3 className="text-xs font-bold text-zinc-900 uppercase tracking-wide">
               INTELAGROW PVT. LTD. — REGISTERED OFFICE
-            </div>
+            </h3>
             <p className="text-xs text-zinc-600 mt-1 max-w-md mx-auto leading-relaxed">
               A/90 NSB Road, Raniganj, Searsole Rajbari, Paschim Bardhaman - 713358, West Bengal, India
             </p>
@@ -759,6 +748,7 @@ export default function Home() {
 
         </div>
       </section>
+      </main>
 
       {/* ═══════════════════════════════════════════════════════════════════
           SECTION 7: D2C E-COMMERCE FOOTER
@@ -822,26 +812,26 @@ export default function Home() {
                   href="https://www.instagram.com/top_sunshoes7?igsh=MXNnc3Q1NGFiam0wMw=="
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-8 h-8 rounded-lg border border-zinc-200 flex items-center justify-center text-zinc-700 hover:text-[#009FE3] hover:border-[#009FE3] shadow-2xs"
-                  aria-label="Instagram"
+                  className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-lg border border-zinc-200 flex items-center justify-center text-zinc-700 hover:text-[#009FE3] hover:border-[#009FE3] shadow-2xs transition-colors"
+                  aria-label="Follow TOPSUN on Instagram"
                 >
-                  <Instagram size={15} />
+                  <Instagram size={17} />
                 </a>
                 <a
                   href="https://wa.me/917485006659"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-8 h-8 rounded-lg border border-zinc-200 flex items-center justify-center text-emerald-600 hover:border-emerald-500 shadow-2xs"
-                  aria-label="WhatsApp"
+                  className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-lg border border-zinc-200 flex items-center justify-center text-emerald-600 hover:border-emerald-500 shadow-2xs transition-colors"
+                  aria-label="Chat with TOPSUN Support on WhatsApp"
                 >
-                  <Phone size={15} />
+                  <Phone size={17} />
                 </a>
                 <a
                   href="mailto:topsunshoes7@gmail.com"
-                  className="w-8 h-8 rounded-lg border border-zinc-200 flex items-center justify-center text-sky-600 hover:border-sky-500 shadow-2xs"
-                  aria-label="Email"
+                  className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-lg border border-zinc-200 flex items-center justify-center text-sky-600 hover:border-sky-500 shadow-2xs transition-colors"
+                  aria-label="Email TOPSUN Support"
                 >
-                  <Mail size={15} />
+                  <Mail size={17} />
                 </a>
               </div>
             </div>
@@ -914,9 +904,11 @@ export default function Home() {
                     <span className="text-xs font-black text-[#009FE3]">
                       ₹{sizeModalProduct.price.toLocaleString()}
                     </span>
-                    <span className="text-[10px] text-zinc-400 line-through">
-                      ₹{sizeModalProduct.mrp.toLocaleString()}
-                    </span>
+                    {sizeModalProduct.discount > 0 && (
+                      <span className="text-[10px] text-zinc-400 line-through">
+                        ₹{sizeModalProduct.originalPrice.toLocaleString()}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -946,17 +938,6 @@ export default function Home() {
       {/* ═══════════════════════════════════════════════════════════════════
           FLOATING ACTION BUTTONS
       ═══════════════════════════════════════════════════════════════════ */}
-      {/* Floating WhatsApp */}
-      <a
-        href="https://wa.me/917485006659"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="fixed bottom-6 left-4 z-40 w-12 h-12 rounded-full bg-[#25D366] text-white flex items-center justify-center shadow-2xl hover:scale-105 transition-transform"
-        aria-label="Chat on WhatsApp"
-      >
-        <MessageCircle size={24} className="fill-white text-[#25D366]" />
-      </a>
-
       {/* Floating Cart (Mobile View) */}
       <button
         onClick={() => navigate("/cart")}

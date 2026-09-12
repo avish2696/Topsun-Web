@@ -43,8 +43,6 @@ class PhoneAuthService {
   async sendPhoneOTP(phone: string): Promise<{ success: boolean; message?: string }> {
     const { raw10, e164 } = this.formatPhone(phone);
 
-    const apiKey = import.meta.env.VITE_APITXT_API_KEY;
-
     // Generate random 6-digit OTP code
     const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiry = Date.now() + 10 * 60 * 1000; // 10 minutes
@@ -57,44 +55,26 @@ class PhoneAuthService {
       );
     } catch {}
 
-    // 1. Send via APITxT API
-    if (apiKey && apiKey !== 'your_apitxt_api_key_here') {
-      try {
-        const endpoints = [
-          '/api/send-otp.php',
-          'https://apitxt.com/api/sendOTP',
-          '/api/apitxt/api/sendOTP',
-        ];
+    // 1. Send via server-side PHP proxy (API key is stored in /api/config.php — never exposed to browser)
+    try {
+      const response = await fetch('/api/send-otp.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mobile: raw10, otp: generatedOtp }),
+      });
 
-        let sentSuccessfully = false;
+      const resJson = await response.json().catch(() => null);
 
-        for (const url of endpoints) {
-          try {
-            const formData = new URLSearchParams({
-              authkey: apiKey,
-              mobile: `91${raw10}`,
-              otp: generatedOtp,
-            });
+      if (response.ok && resJson && (resJson.status === 'success' || resJson.status === '1')) {
+        return { success: true, message: 'OTP sent successfully to your mobile number via SMS!' };
+      }
 
-            const response = await fetch(url, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-              body: formData,
-            });
-
-            const resJson = await response.json().catch(() => null);
-
-            if (response.ok && resJson && resJson.status === 'success') {
-              sentSuccessfully = true;
-              break;
-            }
-          } catch {}
-        }
-
-        if (sentSuccessfully) {
-          return { success: true, message: 'OTP sent successfully to your mobile number via SMS!' };
-        }
-      } catch {}
+      // 429 = rate limited — surface the message
+      if (response.status === 429 && resJson?.message) {
+        return { success: false, message: resJson.message };
+      }
+    } catch {
+      // Network error — fall through to Supabase
     }
 
     // 2. Supabase Auth fallback

@@ -1,0 +1,42 @@
+# TOPSUN API Directory — Apache Security Configuration
+# ──────────────────────────────────────────────────────────────────────────────
+
+# ── 1. Block direct browser access to config.php (server-internal use only) ──
+<Files "config.php">
+  Order deny,allow
+  Deny from all
+</Files>
+
+# ── 2. Block all .env, .log, .bak, .key, .sql files ──────────────────────────
+<FilesMatch "\.(env|log|bak|key|pem|sql|dump|ini|json)$">
+  Order deny,allow
+  Deny from all
+</FilesMatch>
+
+# ── 3. Only allow GET (preflight) and POST on PHP endpoints ──────────────────
+<LimitExcept GET POST OPTIONS>
+  Order deny,allow
+  Deny from all
+</LimitExcept>
+
+# ── 4. Security response headers for every API response ──────────────────────
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "DENY"
+  Header always set X-XSS-Protection "1; mode=block"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+  Header always set Pragma "no-cache"
+  Header always set X-Robots-Tag "noindex, nofollow"
+  Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+</IfModule>
+
+# ── 5. Disable directory listing ─────────────────────────────────────────────
+Options -Indexes
+
+# ── 6. Reject requests with unusual HTTP methods ─────────────────────────────
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{REQUEST_METHOD} ^(TRACE|TRACK|CONNECT|DELETE|PUT|PATCH) [NC]
+  RewriteRule ^ - [F,L]
+</IfModule>

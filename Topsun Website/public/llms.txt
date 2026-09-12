@@ -2,23 +2,21 @@
 
 > TOPSUN is a premium Indian sports footwear brand engineered by INTELAGROW PVT. LTD. We design, manufacture, and retail high-performance athletic footwear, running shoes, trail runners, and everyday lifestyle sneakers.
 
-## Key Information
-- **Website**: https://topsunfootwear.com
-- **Brand**: TOPSUN Performance Footwear
-- **Parent Company**: INTELAGROW PVT. LTD.
-- **Headquarters**: A/90 NSB Road, Raniganj, Searsole Rajbari, Paschim Bardhaman - 713358, West Bengal, India
-- **Contact Email**: topsunshoes7@gmail.com
-- **WhatsApp Support**: +91 74850 06659
-- **Core Technology**: High-density EVA foam midsoles, engineered breathable mesh uppers, non-slip rubber outsoles.
-- **Size Range**: UK / Indian sizing (UK 7, UK 8, UK 9, UK 10). True to Size (TTS).
-- **Return Policy**: 7-Day Hassle-Free Size Exchange with free reverse courier pickup across all Indian PIN codes.
-- **Pricing**: ₹2,000 – ₹2,400 with direct-to-consumer savings (up to 60% off MSRP).
+## Pages & Documentation
+- [Home](https://topsun.in/): TOPSUN high-performance athletic footwear and running shoes
+- [Footwear Collection](https://topsun.in/shop): Full men's footwear catalog including running, casual, trail, and walking shoes
+- [About Us](https://topsun.in/about): Company history, mission, and athletic footwear engineering in India
+- [Contact Support](https://topsun.in/contact): Customer service, WhatsApp helpline, and headquarters location
+- [Sizing Guide](https://topsun.in/sizing-guide): Comprehensive Indian and UK shoe sizing chart and measurement instructions
+- [Returns & Exchanges](https://topsun.in/returns): 7-Day hassle-free doorstep size exchange and return policy
+- [Sustainability](https://topsun.in/sustainability): Eco-conscious EVA midsoles, recyclable packaging, and production ethics
+- [Frequently Asked Questions](https://topsun.in/faq): Common inquiries about shipping, warranty, returns, and shoe care
 
-## Product Line
-- **TOPSUN Airflex**: Lightweight breathable running shoe with responsive cushioning (Mint Green / Blue)
-- **TOPSUN Duro Ridge**: Versatile urban walking sneaker with enhanced lateral support (White / Black / Tan)
-- **TOPSUN Sunspark**: Best-selling all-terrain trail runner (White / Grey / Tan / Orange)
-- **TOPSUN Duskflex**: Premium comfort running shoe with snug midfoot fit (Black / Peach / Teal)
-- **TOPSUN Emberflex**: High-energy street style performance sneaker (White / Grey / Orange)
-- **TOPSUN Cloudmax**: Minimalist everyday trainer with multi-surface capability (Light Grey / White)
-- **TOPSUN HyperFlow**: Pro-tier performance marathon shoe with pressure-mapping insole (White / Blue)
+## Footwear Models
+- [TOPSUN Airflex](https://topsun.in/product/airflex): Lightweight breathable running shoe with responsive cushioning (Mint Green / Blue, ₹2,000)
+- [TOPSUN Duro Ridge](https://topsun.in/product/duro-ridge): Versatile urban walking sneaker with lateral support (White / Black / Tan, ₹2,200)
+- [TOPSUN Sunspark](https://topsun.in/product/sunspark): Best-selling all-terrain trail runner (White / Grey / Tan / Orange, ₹2,280)
+- [TOPSUN Duskflex](https://topsun.in/product/duskflex): Premium comfort walking shoe with snug midfoot fit (Black / Peach / Teal, ₹2,400)
+- [TOPSUN Emberflex](https://topsun.in/product/emberflex): High-energy street style performance sneaker (White / Grey / Orange, ₹2,000)
+- [TOPSUN Cloudmax](https://topsun.in/product/cloudmax): Minimalist everyday trainer with multi-surface capability (Light Grey / White, ₹2,080)
+- [TOPSUN HyperFlow](https://topsun.in/product/hyperflow): Pro-tier marathon and sprint shoe with pressure-mapping insole (White / Blue, ₹2,100)
